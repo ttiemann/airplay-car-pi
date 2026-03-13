@@ -112,6 +112,24 @@ docker run --rm -it airplay-car-pi-test
 
 This validates installer flow and package installation, but not real audio output or full systemd behavior on Raspberry Pi hardware.
 
+## Makefile Stages
+
+Use the Makefile for repeatable checks and tests:
+
+```bash
+make help
+make test
+```
+
+Useful targets:
+
+- `make check` (shell syntax)
+- `make build` (Docker image)
+- `make run` (installer in container)
+- `make rerun` (idempotency check)
+- `make verify-packages` (post-install package validation)
+- `make test-no-network` (negative test)
+
 ## Audio Notes
 
 - Confirm the HiFiBerry overlay is enabled in `config.txt`.
