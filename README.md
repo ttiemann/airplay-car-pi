@@ -12,6 +12,7 @@ It supports Wi-Fi-capable Raspberry Pi Zero boards with performance trade-offs o
 - Installs Shairport Sync and required audio/network packages
 - Generates `/etc/shairport-sync.conf` with configurable defaults
 - Enables and restarts `shairport-sync` automatically on systemd systems
+- Includes `diagnose.sh` for post-install service/audio/network checks
 - Boot-time optimizations for faster in-car availability
 
 ## Hardware
@@ -58,6 +59,12 @@ Alternative (from your local machine):
 scp ./install.sh <username>@<pi-hostname-or-ip>:~/install.sh
 ```
 
+Optional: also copy the diagnostic script:
+
+```bash
+scp ./diagnose.sh <username>@<pi-hostname-or-ip>:~/diagnose.sh
+```
+
 5. Run the installer:
 
 ```bash
@@ -77,6 +84,8 @@ After reboot, verify the AirPlay receiver service:
 
 ```bash
 sudo systemctl status shairport-sync --no-pager
+chmod +x diagnose.sh
+./diagnose.sh
 ```
 
 First boot and package installation time may vary by board and storage speed.
@@ -153,6 +162,30 @@ Useful targets:
 - Verify output device selection in ALSA/PipeWire depending on your setup.
 - Use a ground loop isolator if alternator noise is present.
 - Prefer lower background load for the most stable playback.
+
+## Real Pi Verification
+
+Run the bundled diagnostic script first:
+
+```bash
+chmod +x diagnose.sh
+./diagnose.sh
+```
+
+Then run these manual checks on the Raspberry Pi after installation and reboot:
+
+```bash
+sudo systemctl status shairport-sync --no-pager
+sudo systemctl is-enabled shairport-sync
+aplay -l
+sudo journalctl -u shairport-sync -n 100 --no-pager
+```
+
+Expected result:
+
+- `shairport-sync` is active and enabled.
+- Your audio device appears in `aplay -l` output.
+- `journalctl` shows normal startup without repeated errors.
 
 ## Troubleshooting
 
