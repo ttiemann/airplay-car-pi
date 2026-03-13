@@ -155,6 +155,16 @@ Useful targets:
 - `make rerun` (idempotency check)
 - `make verify-packages` (post-install package validation)
 - `make test-no-network` (negative test)
+- `make copy-scripts` (copy `install.sh` and `diagnose.sh` to Pi)
+- `make remote-install` (run installer on Pi over SSH)
+- `make remote-diagnose` (run diagnostics on Pi over SSH)
+- `make deploy` (copy + install + diagnose in one command)
+
+Example deploy from Mac:
+
+```bash
+make deploy PI_USER=<username> PI_HOST=<pi-hostname-or-ip> PI_PATH=~
+```
 
 ## Audio Notes
 

@@ -2,8 +2,11 @@ SHELL := /bin/bash
 
 IMAGE_NAME ?= airplay-car-pi-test
 DOCKERFILE ?= Dockerfile
+PI_USER ?= pi
+PI_HOST ?= raspberrypi.local
+PI_PATH ?= ~
 
-.PHONY: help check lint build run rerun test verify-packages test-no-network shell clean
+.PHONY: help check lint build run rerun test verify-packages test-no-network shell copy-scripts remote-install remote-diagnose deploy clean
 
 help:
 	@echo "Available targets:"
@@ -16,6 +19,10 @@ help:
 	@echo "  make test-no-network  - Run installer without network (negative test)"
 	@echo "  make test             - Run check, lint, build, run, verify-packages"
 	@echo "  make shell            - Open shell in built image"
+	@echo "  make copy-scripts     - Copy install.sh and diagnose.sh to Raspberry Pi"
+	@echo "  make remote-install   - Run installer on Raspberry Pi over SSH"
+	@echo "  make remote-diagnose  - Run diagnostics on Raspberry Pi over SSH"
+	@echo "  make deploy           - Copy scripts, run installer, then diagnostics"
 	@echo "  make clean            - Remove Docker image"
 
 check:
@@ -48,6 +55,17 @@ test: check lint build run verify-packages
 
 shell: build
 	docker run --rm -it --entrypoint bash $(IMAGE_NAME)
+
+copy-scripts:
+	scp ./install.sh ./diagnose.sh $(PI_USER)@$(PI_HOST):$(PI_PATH)/
+
+remote-install:
+	ssh $(PI_USER)@$(PI_HOST) "chmod +x $(PI_PATH)/install.sh && sudo $(PI_PATH)/install.sh"
+
+remote-diagnose:
+	ssh $(PI_USER)@$(PI_HOST) "chmod +x $(PI_PATH)/diagnose.sh && $(PI_PATH)/diagnose.sh"
+
+deploy: copy-scripts remote-install remote-diagnose
 
 clean:
 	docker rmi $(IMAGE_NAME) || true
