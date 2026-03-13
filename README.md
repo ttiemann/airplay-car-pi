@@ -1,2 +1,130 @@
 # airplay-car-pi
-AirPlay receiver for car radios using Raspberry Pi Zero 2 WH and HiFiBerry DAC+ Zero. Includes automated install script, systemd service, HiFiBerry audio configuration and boot-time optimizations for fast startup in automotive environments.
+
+AirPlay receiver for car radios using Raspberry Pi boards and HiFiBerry DAC+ Zero.
+This project is focused on quick boot, stable playback, and headless operation for automotive use.
+It supports Wi-Fi-capable Raspberry Pi Zero boards with performance trade-offs on older models.
+
+## Features
+
+- AirPlay audio receiver on Raspberry Pi Zero family boards
+- HiFiBerry DAC+ Zero audio output support
+- Automated setup via install script
+- systemd service for automatic startup
+- Boot-time optimizations for faster in-car availability
+
+## Hardware
+
+- Raspberry Pi Zero family board with built-in Wi-Fi
+- HiFiBerry DAC+ Zero
+- microSD card (16 GB or larger recommended)
+- Stable 5V power supply suitable for vehicle use
+- AUX input on car head unit or external amplifier
+
+## Compatibility
+
+- Raspberry Pi Zero boards with built-in Wi-Fi are supported.
+- Performance depends on board generation, power stability, and background load.
+
+## Software Requirements
+
+- Raspberry Pi OS Lite (recommended)
+- Internet connection for package installation
+- SSH access (optional but recommended)
+
+## Quick Start
+
+1. Flash the microSD card with Raspberry Pi Imager:
+	- Download: https://www.raspberrypi.com/software/
+	- Device: your Raspberry Pi model
+	- OS: Raspberry Pi OS Lite
+	- Storage: your microSD card
+2. In Raspberry Pi Imager, open Advanced Options and configure:
+	- Username and password (required)
+	- Hostname
+	- Wi-Fi SSID/password (if applicable)
+	- SSH (required)
+3. Boot the Pi and confirm network access.
+4. Get only the installer script:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/<your-user>/airplay-car-pi/main/install.sh -o install.sh
+```
+
+Alternative (from your local machine):
+
+```bash
+scp ./install.sh <username>@<pi-hostname-or-ip>:~/install.sh
+```
+
+5. Run the installer:
+
+```bash
+chmod +x install.sh
+sudo ./install.sh
+```
+
+6. Reboot when prompted.
+
+After reboot, the AirPlay receiver service should start automatically.
+
+First boot and package installation time may vary by board and storage speed.
+
+## Usage
+
+On iPhone, iPad, or macOS:
+
+1. Open the AirPlay output selector.
+2. Select your Raspberry Pi receiver name.
+3. Start playback.
+
+## Service Management
+
+Use these commands to manage and inspect the service:
+
+```bash
+sudo systemctl status airplay-car.service
+sudo systemctl restart airplay-car.service
+sudo journalctl -u airplay-car.service -f
+```
+
+If your service name differs, replace `airplay-car.service` with the installed unit name.
+
+## Audio Notes
+
+- Confirm the HiFiBerry overlay is enabled in `config.txt`.
+- Verify output device selection in ALSA/PipeWire depending on your setup.
+- Use a ground loop isolator if alternator noise is present.
+- Prefer lower background load for the most stable playback.
+
+## Troubleshooting
+
+- Receiver not visible in AirPlay list:
+	- Check that the Pi and phone are on the same network.
+	- Verify the service is running.
+	- Reboot the Pi and retry.
+
+- Audio crackling or stutter:
+	- Check power stability.
+	- Reduce Wi-Fi interference.
+	- Confirm CPU load is not saturated.
+	- Disable unnecessary services to free CPU.
+
+- Raspberry Pi Zero board does not show up on network:
+	- Confirm onboard Wi-Fi is enabled and country is set.
+	- Verify DHCP assigned an IP address.
+	- Check link status before troubleshooting AirPlay service.
+
+- No audio output:
+	- Confirm wiring from DAC to car input.
+	- Verify mixer/output levels.
+	- Check logs with `journalctl`.
+
+## Project Goals
+
+- Fast startup suitable for short trips
+- Reliable reconnect behavior
+- Minimal maintenance after install
+
+## License
+
+This repository is licensed under the terms of the [LICENSE](LICENSE) file.
