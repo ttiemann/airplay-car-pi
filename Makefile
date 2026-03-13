@@ -39,7 +39,7 @@ rerun: build
 	docker run --rm -it $(IMAGE_NAME)
 
 verify-packages: build
-	docker run --rm -it $(IMAGE_NAME) bash -lc "dpkg -l alsa-utils avahi-daemon shairport-sync"
+	docker run --rm -it $(IMAGE_NAME) bash -lc "/app/install.sh >/dev/null && dpkg -l alsa-utils avahi-daemon shairport-sync"
 
 test-no-network: build
 	docker run --rm -it --network none $(IMAGE_NAME)
