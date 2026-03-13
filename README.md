@@ -10,6 +10,8 @@ It supports Wi-Fi-capable Raspberry Pi Zero boards with performance trade-offs o
 - HiFiBerry DAC+ Zero audio output support
 - Automated setup bootstrap via install script
 - Installs Shairport Sync and required audio/network packages
+- Generates `/etc/shairport-sync.conf` with configurable defaults
+- Enables and restarts `shairport-sync` automatically on systemd systems
 - Boot-time optimizations for faster in-car availability
 
 ## Hardware
@@ -63,6 +65,12 @@ chmod +x install.sh
 sudo ./install.sh
 ```
 
+Optional custom values:
+
+```bash
+sudo AIRPLAY_DEVICE_NAME="Car AirPlay" AIRPLAY_BACKEND="alsa" AIRPLAY_LATENCY="88200" ./install.sh
+```
+
 6. Reboot when prompted.
 
 After reboot, verify the AirPlay receiver service:
@@ -80,6 +88,15 @@ Current bootstrap actions:
 - Runs `apt-get update`
 - Runs `apt-get upgrade -y`
 - Installs `alsa-utils`, `avahi-daemon`, and `shairport-sync`
+- Validates `AIRPLAY_LATENCY`
+- Generates `/etc/shairport-sync.conf` (with timestamped backup if it exists)
+- Enables and restarts `shairport-sync` when systemd is available
+
+Supported environment variables:
+
+- `AIRPLAY_DEVICE_NAME` (default: `AirPlay Car Pi`)
+- `AIRPLAY_BACKEND` (default: `alsa`)
+- `AIRPLAY_LATENCY` (default: `88200`)
 
 ## Usage
 
