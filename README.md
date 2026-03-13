@@ -101,6 +101,17 @@ sudo journalctl -u shairport-sync -f
 
 If your service name differs, replace `shairport-sync` with the installed unit name.
 
+## Docker Test
+
+Use Docker for quick installer validation in a clean Debian Trixie environment.
+
+```bash
+docker build -t airplay-car-pi-test .
+docker run --rm -it airplay-car-pi-test
+```
+
+This validates installer flow and package installation, but not real audio output or full systemd behavior on Raspberry Pi hardware.
+
 ## Audio Notes
 
 - Confirm the HiFiBerry overlay is enabled in `config.txt`.
