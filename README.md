@@ -211,25 +211,25 @@ Expected result:
 ## Troubleshooting
 
 - Receiver not visible in AirPlay list:
-    - Check that the Pi and phone are on the same network.
-    - Verify the service is running.
-    - Reboot the Pi and retry.
+  - Check that the Pi and phone are on the same network.
+  - Verify the service is running.
+  - Reboot the Pi and retry.
 
 - Audio crackling or stutter:
-    - Check power stability.
-    - Reduce Wi-Fi interference.
-    - Confirm CPU load is not saturated.
-    - Disable unnecessary services to free CPU.
+  - Check power stability.
+  - Reduce Wi-Fi interference.
+  - Confirm CPU load is not saturated.
+  - Disable unnecessary services to free CPU.
 
 - Raspberry Pi Zero board does not show up on network:
-    - Confirm onboard Wi-Fi is enabled and country is set.
-    - Verify DHCP assigned an IP address.
-    - Check link status before troubleshooting AirPlay service.
+  - Confirm onboard Wi-Fi is enabled and country is set.
+  - Verify DHCP assigned an IP address.
+  - Check link status before troubleshooting AirPlay service.
 
 - No audio output:
-    - Confirm wiring from DAC to car input.
-    - Verify mixer/output levels.
-    - Check logs with `journalctl`.
+  - Confirm wiring from DAC to car input.
+  - Verify mixer/output levels.
+  - Check logs with `journalctl`.
 
 ## Project Goals
 
