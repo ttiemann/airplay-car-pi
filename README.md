@@ -8,8 +8,8 @@ It supports Wi-Fi-capable Raspberry Pi Zero boards with performance trade-offs o
 
 - AirPlay audio receiver on Raspberry Pi Zero family boards
 - HiFiBerry DAC+ Zero audio output support
-- Automated setup via install script
-- systemd service for automatic startup
+- Automated setup bootstrap via install script
+- Installs Shairport Sync and required audio/network packages
 - Boot-time optimizations for faster in-car availability
 
 ## Hardware
@@ -65,9 +65,21 @@ sudo ./install.sh
 
 6. Reboot when prompted.
 
-After reboot, the AirPlay receiver service should start automatically.
+After reboot, verify the AirPlay receiver service:
+
+```bash
+sudo systemctl status shairport-sync --no-pager
+```
 
 First boot and package installation time may vary by board and storage speed.
+
+## What The Installer Does
+
+Current bootstrap actions:
+
+- Runs `apt-get update`
+- Runs `apt-get upgrade -y`
+- Installs `alsa-utils`, `avahi-daemon`, and `shairport-sync`
 
 ## Usage
 
@@ -82,12 +94,12 @@ On iPhone, iPad, or macOS:
 Use these commands to manage and inspect the service:
 
 ```bash
-sudo systemctl status airplay-car.service
-sudo systemctl restart airplay-car.service
-sudo journalctl -u airplay-car.service -f
+sudo systemctl status shairport-sync --no-pager
+sudo systemctl restart shairport-sync
+sudo journalctl -u shairport-sync -f
 ```
 
-If your service name differs, replace `airplay-car.service` with the installed unit name.
+If your service name differs, replace `shairport-sync` with the installed unit name.
 
 ## Audio Notes
 
