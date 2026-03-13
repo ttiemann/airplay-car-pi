@@ -5,6 +5,7 @@ set -euo pipefail
 
 SERVICE_NAME="shairport-sync"
 CONFIG_FILE="/etc/shairport-sync.conf"
+HIFIBERRY_CARD_PATTERN='hifiberry|sndrpihifiberry'
 
 pass() {
   printf "[PASS] %s\n" "$1"
@@ -26,25 +27,33 @@ run_sudo_if_needed() {
   fi
 }
 
+has_running_systemd() {
+  command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]
+}
+
 check_service_active() {
-  if command -v systemctl >/dev/null 2>&1; then
+  if has_running_systemd; then
     if run_sudo_if_needed systemctl is-active --quiet "${SERVICE_NAME}"; then
       pass "${SERVICE_NAME} is active"
     else
       warn "${SERVICE_NAME} is not active"
     fi
+  elif command -v systemctl >/dev/null 2>&1; then
+    warn "systemctl is installed, but systemd is not running"
   else
     warn "systemctl not found, cannot check service state"
   fi
 }
 
 check_service_enabled() {
-  if command -v systemctl >/dev/null 2>&1; then
+  if has_running_systemd; then
     if run_sudo_if_needed systemctl is-enabled --quiet "${SERVICE_NAME}"; then
       pass "${SERVICE_NAME} is enabled at boot"
     else
       warn "${SERVICE_NAME} is not enabled at boot"
     fi
+  elif command -v systemctl >/dev/null 2>&1; then
+    warn "systemctl is installed, but systemd is not running"
   else
     warn "systemctl not found, cannot check service enablement"
   fi
@@ -64,6 +73,12 @@ check_audio_devices() {
       pass "Audio devices detected by ALSA"
       info "Detected audio cards:"
       aplay -l | sed -n 's/^card /  card /p'
+
+      if aplay -l | grep -Eiq "${HIFIBERRY_CARD_PATTERN}"; then
+        pass "HiFiBerry DAC appears in ALSA device list"
+      else
+        warn "HiFiBerry DAC not detected in ALSA device list"
+      fi
     else
       warn "No ALSA audio devices detected"
     fi
@@ -73,9 +88,11 @@ check_audio_devices() {
 }
 
 show_recent_logs() {
-  if command -v journalctl >/dev/null 2>&1; then
+  if has_running_systemd; then
     info "Recent ${SERVICE_NAME} logs (last 50 lines):"
     run_sudo_if_needed journalctl -u "${SERVICE_NAME}" -n 50 --no-pager || warn "Failed to read journal logs"
+  elif command -v journalctl >/dev/null 2>&1; then
+    warn "journalctl is installed, but systemd journal is not running"
   else
     warn "journalctl not found, cannot display service logs"
   fi

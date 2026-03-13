@@ -10,6 +10,7 @@ It supports Wi-Fi-capable Raspberry Pi Zero boards with performance trade-offs o
 - HiFiBerry DAC+ Zero audio output support
 - Automated setup bootstrap via install script
 - Installs Shairport Sync and required audio/network packages
+- Configures Raspberry Pi boot settings for HiFiBerry DAC+ Zero when boot config is available
 - Generates `/etc/shairport-sync.conf` with configurable defaults
 - Enables and restarts `shairport-sync` automatically on systemd systems
 - Includes `diagnose.sh` for post-install service/audio/network checks
@@ -97,6 +98,7 @@ Current bootstrap actions:
 - Runs `apt-get update`
 - Runs `apt-get upgrade -y`
 - Installs `alsa-utils`, `avahi-daemon`, and `shairport-sync`
+- Configures Raspberry Pi boot audio settings for HiFiBerry DAC+ Zero
 - Validates `AIRPLAY_LATENCY`
 - Generates `/etc/shairport-sync.conf` (with timestamped backup if it exists)
 - Enables and restarts `shairport-sync` when systemd is available
@@ -175,7 +177,8 @@ make deploy PI_USER=<username> PI_HOST=<pi-hostname-or-ip> PI_PATH=~
 
 ## Audio Notes
 
-- Confirm the HiFiBerry overlay is enabled in `config.txt`.
+- The installer attempts to set `dtparam=audio=off` and `dtoverlay=hifiberry-dacplus` in the Raspberry Pi boot config.
+- Reboot is required after boot config changes so the DAC overlay loads.
 - Verify output device selection in ALSA/PipeWire depending on your setup.
 - Use a ground loop isolator if alternator noise is present.
 - Prefer lower background load for the most stable playback.
@@ -202,6 +205,7 @@ Expected result:
 
 - `shairport-sync` is active and enabled.
 - Your audio device appears in `aplay -l` output.
+- The HiFiBerry DAC is detected by `diagnose.sh` or visible in `aplay -l` output.
 - `journalctl` shows normal startup without repeated errors.
 
 ## Troubleshooting

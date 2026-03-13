@@ -10,6 +10,7 @@ CORE_PACKAGES=(
 )
 
 SHAIRPORT_CONFIG_FILE="/etc/shairport-sync.conf"
+HIFIBERRY_OVERLAY="dtoverlay=hifiberry-dacplus"
 AIRPLAY_DEVICE_NAME="${AIRPLAY_DEVICE_NAME:-AirPlay Car Pi}"
 AIRPLAY_BACKEND="${AIRPLAY_BACKEND:-alsa}"
 AIRPLAY_LATENCY="${AIRPLAY_LATENCY:-88200}"
@@ -36,6 +37,16 @@ apt_update_upgrade() {
 install_core_packages() {
   log "Installing core packages"
   DEBIAN_FRONTEND=noninteractive apt-get install -y "${CORE_PACKAGES[@]}"
+}
+
+get_boot_config_file() {
+  if [[ -f "/boot/firmware/config.txt" ]]; then
+    printf "%s\n" "/boot/firmware/config.txt"
+  elif [[ -f "/boot/config.txt" ]]; then
+    printf "%s\n" "/boot/config.txt"
+  else
+    printf "%s\n" ""
+  fi
 }
 
 validate_config_inputs() {
@@ -74,6 +85,31 @@ latencies = {
 EOF
 }
 
+configure_hifiberry_dac() {
+  local boot_config_file
+
+  boot_config_file="$(get_boot_config_file)"
+
+  if [[ -z "${boot_config_file}" ]]; then
+    log "Raspberry Pi boot config not found, skipping HiFiBerry DAC boot configuration"
+    return
+  fi
+
+  log "Configuring HiFiBerry DAC in ${boot_config_file}"
+  cp -a "${boot_config_file}" "${boot_config_file}.bak.$(date +"%Y%m%d%H%M%S")"
+
+  if grep -Eq '^\s*dtparam=audio=' "${boot_config_file}"; then
+    sed -i '' 's/^\s*dtparam=audio=.*/dtparam=audio=off/' "${boot_config_file}" 2>/dev/null || \
+      sed -i 's/^\s*dtparam=audio=.*/dtparam=audio=off/' "${boot_config_file}"
+  else
+    printf "\n%s\n" "dtparam=audio=off" >> "${boot_config_file}"
+  fi
+
+  if ! grep -Fxq "${HIFIBERRY_OVERLAY}" "${boot_config_file}"; then
+    printf "%s\n" "${HIFIBERRY_OVERLAY}" >> "${boot_config_file}"
+  fi
+}
+
 configure_shairport_service() {
   if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
     log "Enabling and restarting shairport-sync"
@@ -90,6 +126,7 @@ main() {
   log "Starting airplay-car-pi installer bootstrap"
   apt_update_upgrade
   install_core_packages
+  configure_hifiberry_dac
   validate_config_inputs
   generate_shairport_config
   configure_shairport_service
