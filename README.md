@@ -38,7 +38,7 @@ It supports Wi-Fi-capable Raspberry Pi Zero boards with performance trade-offs o
 ## Quick Start
 
 1. Flash the microSD card with Raspberry Pi Imager:
-    - Download: https://www.raspberrypi.com/software/
+    - Download: <https://www.raspberrypi.com/software/>
     - Device: your Raspberry Pi model
     - OS: Raspberry Pi OS Lite
     - Storage: your microSD card
