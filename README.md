@@ -38,15 +38,15 @@ It supports Wi-Fi-capable Raspberry Pi Zero boards with performance trade-offs o
 ## Quick Start
 
 1. Flash the microSD card with Raspberry Pi Imager:
-	- Download: https://www.raspberrypi.com/software/
-	- Device: your Raspberry Pi model
-	- OS: Raspberry Pi OS Lite
-	- Storage: your microSD card
+    - Download: https://www.raspberrypi.com/software/
+    - Device: your Raspberry Pi model
+    - OS: Raspberry Pi OS Lite
+    - Storage: your microSD card
 2. In Raspberry Pi Imager, open Advanced Options and configure:
-	- Username and password (required)
-	- Hostname
-	- Wi-Fi SSID/password (if applicable)
-	- SSH (required)
+    - Username and password (required)
+    - Hostname
+    - Wi-Fi SSID/password (if applicable)
+    - SSH (required)
 3. Boot the Pi and confirm network access.
 4. Get only the installer script:
 
@@ -211,25 +211,25 @@ Expected result:
 ## Troubleshooting
 
 - Receiver not visible in AirPlay list:
-	- Check that the Pi and phone are on the same network.
-	- Verify the service is running.
-	- Reboot the Pi and retry.
+    - Check that the Pi and phone are on the same network.
+    - Verify the service is running.
+    - Reboot the Pi and retry.
 
 - Audio crackling or stutter:
-	- Check power stability.
-	- Reduce Wi-Fi interference.
-	- Confirm CPU load is not saturated.
-	- Disable unnecessary services to free CPU.
+    - Check power stability.
+    - Reduce Wi-Fi interference.
+    - Confirm CPU load is not saturated.
+    - Disable unnecessary services to free CPU.
 
 - Raspberry Pi Zero board does not show up on network:
-	- Confirm onboard Wi-Fi is enabled and country is set.
-	- Verify DHCP assigned an IP address.
-	- Check link status before troubleshooting AirPlay service.
+    - Confirm onboard Wi-Fi is enabled and country is set.
+    - Verify DHCP assigned an IP address.
+    - Check link status before troubleshooting AirPlay service.
 
 - No audio output:
-	- Confirm wiring from DAC to car input.
-	- Verify mixer/output levels.
-	- Check logs with `journalctl`.
+    - Confirm wiring from DAC to car input.
+    - Verify mixer/output levels.
+    - Check logs with `journalctl`.
 
 ## Project Goals
 
