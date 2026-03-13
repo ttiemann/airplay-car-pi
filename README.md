@@ -136,6 +136,12 @@ docker build -t airplay-car-pi-test .
 docker run --rm -it airplay-car-pi-test
 ```
 
+Run container diagnostics after install:
+
+```bash
+make diagnose-container
+```
+
 This validates installer flow and package installation, but not real audio output or full systemd behavior on Raspberry Pi hardware.
 
 ## Makefile Stages
@@ -153,6 +159,7 @@ Useful targets:
 - `make build` (Docker image)
 - `make run` (installer in container)
 - `make rerun` (idempotency check)
+- `make diagnose-container` (run `diagnose.sh` in Docker after install)
 - `make verify-packages` (post-install package validation)
 - `make test-no-network` (negative test)
 - `make copy-scripts` (copy `install.sh` and `diagnose.sh` to Pi)
