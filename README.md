@@ -106,6 +106,7 @@ Supported environment variables:
 
 - `AIRPLAY_DEVICE_NAME` (default: `AirPlay Car Pi`)
 - `AIRPLAY_BACKEND` (default: `alsa`)
+- `AIRPLAY_MIXER_CONTROL_NAME` (optional override; auto-detected if unset)
 
 ## Usage
 

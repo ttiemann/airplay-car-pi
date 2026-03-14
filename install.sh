@@ -13,6 +13,7 @@ SHAIRPORT_CONFIG_FILE="/etc/shairport-sync.conf"
 HIFIBERRY_OVERLAY="dtoverlay=hifiberry-dac"
 AIRPLAY_DEVICE_NAME="${AIRPLAY_DEVICE_NAME:-AirPlay Car Pi}"
 AIRPLAY_BACKEND="${AIRPLAY_BACKEND:-alsa}"
+AIRPLAY_MIXER_CONTROL_NAME="${AIRPLAY_MIXER_CONTROL_NAME:-}"
 
 log() {
   printf "\n[%s] %s\n" "$(date +"%Y-%m-%d %H:%M:%S")" "$1"
@@ -53,8 +54,42 @@ get_boot_config_file() {
   fi
 }
 
+detect_mixer_control_name() {
+  local controls candidate
+
+  if [[ -n "${AIRPLAY_MIXER_CONTROL_NAME}" ]]; then
+    printf "%s\n" "${AIRPLAY_MIXER_CONTROL_NAME}"
+    return
+  fi
+
+  if ! command -v amixer >/dev/null 2>&1; then
+    printf "%s\n" ""
+    return
+  fi
+
+  controls="$(amixer -D default scontrols 2>/dev/null || amixer scontrols 2>/dev/null || true)"
+
+  if [[ -z "${controls}" ]]; then
+    printf "%s\n" ""
+    return
+  fi
+
+  for candidate in "Playback Digital" "Digital" "PCM" "Master"; do
+    if grep -Fq "Simple mixer control '${candidate}'," <<<"${controls}"; then
+      printf "%s\n" "${candidate}"
+      return
+    fi
+  done
+
+  printf "%s\n" "$(sed -n "s/^Simple mixer control '\([^']*\)',.*/\1/p" <<<"${controls}" | head -n1)"
+}
+
 generate_shairport_config() {
+  local mixer_control_name
+
   log "Generating Shairport Sync config"
+
+  mixer_control_name="$(detect_mixer_control_name)"
 
   if [[ -f "${SHAIRPORT_CONFIG_FILE}" ]]; then
     cp -a "${SHAIRPORT_CONFIG_FILE}" "${SHAIRPORT_CONFIG_FILE}.bak.$(date +"%Y%m%d%H%M%S")"
@@ -73,7 +108,16 @@ sessioncontrol = {
 
 alsa = {
   output_device = "default";
-  mixer_control_name = "Digital";
+EOF
+
+  if [[ -n "${mixer_control_name}" ]]; then
+    printf "  mixer_control_name = \"%s\";\n" "${mixer_control_name}" >>"${SHAIRPORT_CONFIG_FILE}"
+  else
+    # Fallback to software volume if no ALSA mixer control is discoverable.
+    printf "  mixer_type = \"software\";\n" >>"${SHAIRPORT_CONFIG_FILE}"
+  fi
+
+  cat >>"${SHAIRPORT_CONFIG_FILE}" <<EOF
 };
 EOF
 }

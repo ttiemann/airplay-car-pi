@@ -72,13 +72,35 @@ test_generate_shairport_config_uses_selected_values() {
   SHAIRPORT_CONFIG_FILE="$config_file"
   AIRPLAY_DEVICE_NAME="Unit Test Receiver"
   AIRPLAY_BACKEND="alsa"
+  AIRPLAY_MIXER_CONTROL_NAME="Playback Digital"
 
   generate_shairport_config >/dev/null
 
   assert_contains "$config_file" 'name = "Unit Test Receiver";'
   assert_contains "$config_file" 'output_backend = "alsa";'
-  assert_contains "$config_file" 'mixer_control_name = "Digital";'
+  assert_contains "$config_file" 'mixer_control_name = "Playback Digital";'
+  assert_not_contains "$config_file" 'mixer_type = "software";'
   assert_not_contains "$config_file" 'latencies = {'
+}
+
+test_generate_shairport_config_uses_software_mixer_when_no_control_available() {
+  local tmp_dir config_file
+  tmp_dir="$(mktemp -d)"
+  config_file="${tmp_dir}/shairport-sync.conf"
+
+  SHAIRPORT_CONFIG_FILE="$config_file"
+  AIRPLAY_DEVICE_NAME="Unit Test Receiver"
+  AIRPLAY_BACKEND="alsa"
+  AIRPLAY_MIXER_CONTROL_NAME=""
+
+  amixer() { return 127; }
+
+  generate_shairport_config >/dev/null
+
+  unset -f amixer
+
+  assert_contains "$config_file" 'mixer_type = "software";'
+  assert_not_contains "$config_file" 'mixer_control_name = "'
 }
 
 test_get_boot_config_file_prefers_primary_path() {
@@ -122,6 +144,7 @@ EOF
 
 main() {
   run_test test_generate_shairport_config_uses_selected_values
+  run_test test_generate_shairport_config_uses_software_mixer_when_no_control_available
   run_test test_get_boot_config_file_prefers_primary_path
   run_test test_configure_hifiberry_dac_is_idempotent
 
