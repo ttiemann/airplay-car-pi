@@ -41,6 +41,9 @@ lint:
 unit:
 	bash tests/unit/install_unit_tests.sh
 
+integration-airplay:
+	bash tests/integration/airplay_sender_flow_test.sh
+
 build:
 	docker build -f $(DOCKERFILE) -t $(IMAGE_NAME) .
 
