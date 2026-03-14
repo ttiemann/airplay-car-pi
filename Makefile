@@ -6,12 +6,13 @@ PI_USER ?= pi
 PI_HOST ?= raspberrypi.local
 PI_PATH ?= /home/$(PI_USER)
 
-.PHONY: help check lint build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install remote-diagnose deploy clean
+.PHONY: help check lint unit build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install remote-diagnose deploy clean
 
 help:
 	@echo "Available targets:"
 	@echo "  make check              - Validate install.sh syntax"
 	@echo "  make lint               - Run shellcheck if installed"
+	@echo "  make unit               - Run isolated unit tests for installer logic"
 	@echo "  make build              - Build Docker image"
 	@echo "  make run                - Run installer in Docker"
 	@echo "  make rerun              - Run installer twice (idempotency check)"
@@ -35,6 +36,9 @@ lint:
 	else \
 		echo "shellcheck not found, skipping lint"; \
 	fi
+
+unit:
+	bash tests/unit/install_unit_tests.sh
 
 build:
 	docker build -f $(DOCKERFILE) -t $(IMAGE_NAME) .

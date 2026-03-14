@@ -156,6 +156,7 @@ make test
 Useful targets:
 
 - `make check` (shell syntax)
+- `make unit` (isolated installer unit tests)
 - `make build` (Docker image)
 - `make run` (installer in container)
 - `make rerun` (idempotency check)
