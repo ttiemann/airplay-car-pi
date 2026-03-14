@@ -160,6 +160,7 @@ Useful targets:
 - `make unit` (isolated installer unit tests)
 - `make integration-airplay` (real sender flow test on target hardware)
 - `make perf` (regression/performance tests on target hardware)
+- `make security` (shellcheck all scripts, secret scan, trivy CVE scan, gitleaks)
 - `make build` (Docker image)
 - `make run` (installer in container)
 - `make rerun` (idempotency check)

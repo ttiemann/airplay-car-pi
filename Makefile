@@ -10,7 +10,7 @@ COPY_RETRIES ?= 5
 WAIT_SSH_RETRIES ?= 36
 WAIT_SSH_INTERVAL ?= 5
 
-.PHONY: help check lint unit integration-airplay perf build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install wait-for-ssh remote-diagnose deploy clean
+.PHONY: help check lint unit integration-airplay perf security build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install wait-for-ssh remote-diagnose deploy clean
 
 help:
 	@echo "Available targets:"
@@ -19,6 +19,7 @@ help:
 	@echo "  make unit                - Run isolated unit tests for installer logic"
 	@echo "  make integration-airplay - Run real sender flow test against target Pi"
 	@echo "  make perf                - Run regression/performance tests on target Pi"
+	@echo "  make security            - Run security checks (shellcheck all, secrets, trivy, gitleaks)"
 	@echo "  make build               - Build Docker image"
 	@echo "  make run                 - Run installer in Docker"
 	@echo "  make rerun               - Run installer twice (idempotency check)"
@@ -52,6 +53,9 @@ integration-airplay:
 
 perf:
 	bash tests/regression/perf_test.sh
+
+security:
+	bash tests/security/security_check.sh
 
 build:
 	docker build -f $(DOCKERFILE) -t $(IMAGE_NAME) .
