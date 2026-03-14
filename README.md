@@ -158,6 +158,7 @@ Useful targets:
 
 - `make check` (shell syntax)
 - `make unit` (isolated installer unit tests)
+- `make integration-airplay` (real sender flow test on target hardware)
 - `make build` (Docker image)
 - `make run` (installer in container)
 - `make rerun` (idempotency check)
@@ -180,6 +181,14 @@ If you need an explicit path, use a remote Linux path such as:
 ```bash
 make deploy PI_USER=<username> PI_HOST=<pi-hostname-or-ip> PI_PATH=/home/<username>
 ```
+
+Real AirPlay sender integration test:
+
+```bash
+make integration-airplay PI_USER=<username> PI_HOST=<pi-hostname-or-ip> AIRPLAY_INTEGRATION_TIMEOUT=120
+```
+
+When prompted, start playback from a real sender (iPhone, iPad, or macOS) to the receiver. The test passes when an active AirPlay session is detected on the receiver ports.
 
 ## Audio Notes
 

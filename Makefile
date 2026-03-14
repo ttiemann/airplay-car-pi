@@ -6,26 +6,27 @@ PI_USER ?= pi
 PI_HOST ?= raspberrypi.local
 PI_PATH ?= /home/$(PI_USER)
 
-.PHONY: help check lint unit build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install remote-diagnose deploy clean
+.PHONY: help check lint unit integration-airplay build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install remote-diagnose deploy clean
 
 help:
 	@echo "Available targets:"
-	@echo "  make check              - Validate install.sh syntax"
-	@echo "  make lint               - Run shellcheck if installed"
-	@echo "  make unit               - Run isolated unit tests for installer logic"
-	@echo "  make build              - Build Docker image"
-	@echo "  make run                - Run installer in Docker"
-	@echo "  make rerun              - Run installer twice (idempotency check)"
-	@echo "  make diagnose-container - Run diagnose.sh in Docker"
-	@echo "  make verify-packages    - Verify expected packages in container"
-	@echo "  make test-no-network    - Run installer without network (negative test)"
-	@echo "  make test               - Run check, lint, build, run, verify-packages"
-	@echo "  make shell              - Open shell in built image"
-	@echo "  make copy-scripts       - Copy install.sh and diagnose.sh to Raspberry Pi"
-	@echo "  make remote-install     - Run installer on Raspberry Pi over SSH"
-	@echo "  make remote-diagnose    - Run diagnostics on Raspberry Pi over SSH"
-	@echo "  make deploy             - Copy scripts, run installer, then diagnostics"
-	@echo "  make clean              - Remove Docker image"
+	@echo "  make check               - Validate install.sh syntax"
+	@echo "  make lint                - Run shellcheck if installed"
+	@echo "  make unit                - Run isolated unit tests for installer logic"
+	@echo "  make integration-airplay - Run real sender flow test against target Pi"
+	@echo "  make build               - Build Docker image"
+	@echo "  make run                 - Run installer in Docker"
+	@echo "  make rerun               - Run installer twice (idempotency check)"
+	@echo "  make diagnose-container  - Run diagnose.sh in Docker"
+	@echo "  make verify-packages     - Verify expected packages in container"
+	@echo "  make test-no-network     - Run installer without network (negative test)"
+	@echo "  make test                - Run check, lint, build, run, verify-packages"
+	@echo "  make shell               - Open shell in built image"
+	@echo "  make copy-scripts        - Copy install.sh and diagnose.sh to Raspberry Pi"
+	@echo "  make remote-install      - Run installer on Raspberry Pi over SSH"
+	@echo "  make remote-diagnose     - Run diagnostics on Raspberry Pi over SSH"
+	@echo "  make deploy              - Copy scripts, run installer, then diagnostics"
+	@echo "  make clean               - Remove Docker image"
 
 check:
 	bash -n install.sh
