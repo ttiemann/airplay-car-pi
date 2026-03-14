@@ -69,6 +69,8 @@ test_generate_shairport_config_uses_selected_values() {
   tmp_dir="$(mktemp -d)"
   config_file="${tmp_dir}/shairport-sync.conf"
 
+  # shellcheck disable=SC2034
+  # Variables below are read by functions sourced from install.sh.
   SHAIRPORT_CONFIG_FILE="$config_file"
   AIRPLAY_DEVICE_NAME="Unit Test Receiver"
   AIRPLAY_BACKEND="alsa"
@@ -88,6 +90,8 @@ test_generate_shairport_config_uses_software_mixer_when_no_control_available() {
   tmp_dir="$(mktemp -d)"
   config_file="${tmp_dir}/shairport-sync.conf"
 
+  # shellcheck disable=SC2034
+  # Variables below are read by functions sourced from install.sh.
   SHAIRPORT_CONFIG_FILE="$config_file"
   AIRPLAY_DEVICE_NAME="Unit Test Receiver"
   AIRPLAY_BACKEND="alsa"
@@ -124,6 +128,8 @@ test_configure_hifiberry_dac_is_idempotent() {
   tmp_dir="$(mktemp -d)"
   boot_cfg="${tmp_dir}/config.txt"
 
+  # shellcheck disable=SC2034
+  # Variables below are read by functions sourced from install.sh.
   BOOT_CONFIG_PRIMARY="$boot_cfg"
   BOOT_CONFIG_LEGACY="${tmp_dir}/unused-legacy.txt"
 
