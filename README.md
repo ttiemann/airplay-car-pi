@@ -76,7 +76,7 @@ sudo ./install.sh
 Optional custom values:
 
 ```bash
-sudo AIRPLAY_DEVICE_NAME="Car AirPlay" AIRPLAY_BACKEND="alsa" AIRPLAY_LATENCY="88200" ./install.sh
+sudo AIRPLAY_DEVICE_NAME="Car AirPlay" AIRPLAY_BACKEND="alsa" ./install.sh
 ```
 
 6. Reboot when prompted.
@@ -99,7 +99,6 @@ Current bootstrap actions:
 - Runs `apt-get upgrade -y`
 - Installs `alsa-utils`, `avahi-daemon`, and `shairport-sync`
 - Configures Raspberry Pi boot audio settings for HiFiBerry DAC+ Zero
-- Validates `AIRPLAY_LATENCY`
 - Generates `/etc/shairport-sync.conf` (with timestamped backup if it exists)
 - Enables and restarts `shairport-sync` when systemd is available
 
@@ -107,7 +106,6 @@ Supported environment variables:
 
 - `AIRPLAY_DEVICE_NAME` (default: `AirPlay Car Pi`)
 - `AIRPLAY_BACKEND` (default: `alsa`)
-- `AIRPLAY_LATENCY` (default: `88200`)
 
 ## Usage
 

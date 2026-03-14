@@ -13,7 +13,6 @@ SHAIRPORT_CONFIG_FILE="/etc/shairport-sync.conf"
 HIFIBERRY_OVERLAY="dtoverlay=hifiberry-dacplus"
 AIRPLAY_DEVICE_NAME="${AIRPLAY_DEVICE_NAME:-AirPlay Car Pi}"
 AIRPLAY_BACKEND="${AIRPLAY_BACKEND:-alsa}"
-AIRPLAY_LATENCY="${AIRPLAY_LATENCY:-88200}"
 
 log() {
   printf "\n[%s] %s\n" "$(date +"%Y-%m-%d %H:%M:%S")" "$1"
@@ -49,13 +48,6 @@ get_boot_config_file() {
   fi
 }
 
-validate_config_inputs() {
-  if ! [[ "${AIRPLAY_LATENCY}" =~ ^[0-9]+$ ]]; then
-    echo "AIRPLAY_LATENCY must be a positive integer, got: ${AIRPLAY_LATENCY}"
-    exit 1
-  fi
-}
-
 generate_shairport_config() {
   log "Generating Shairport Sync config"
 
@@ -77,10 +69,6 @@ sessioncontrol = {
 alsa = {
   output_device = "default";
   mixer_control_name = "Digital";
-};
-
-latencies = {
-  "${AIRPLAY_BACKEND}" = ${AIRPLAY_LATENCY};
 };
 EOF
 }
@@ -127,7 +115,6 @@ main() {
   apt_update_upgrade
   install_core_packages
   configure_hifiberry_dac
-  validate_config_inputs
   generate_shairport_config
   configure_shairport_service
 
