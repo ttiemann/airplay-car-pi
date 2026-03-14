@@ -172,7 +172,13 @@ Useful targets:
 Example deploy from Mac:
 
 ```bash
-make deploy PI_USER=<username> PI_HOST=<pi-hostname-or-ip> PI_PATH=~
+make deploy PI_USER=<username> PI_HOST=<pi-hostname-or-ip>
+```
+
+If you need an explicit path, use a remote Linux path such as:
+
+```bash
+make deploy PI_USER=<username> PI_HOST=<pi-hostname-or-ip> PI_PATH=/home/<username>
 ```
 
 ## Audio Notes
