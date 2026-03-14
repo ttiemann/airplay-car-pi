@@ -5,7 +5,7 @@ set -euo pipefail
 
 SERVICE_NAME="shairport-sync"
 CONFIG_FILE="/etc/shairport-sync.conf"
-HIFIBERRY_CARD_PATTERN='hifiberry|sndrpihifiberry'
+HIFIBERRY_CARD_PATTERN='hifiberry|sndrpihifiberry|hifiberrydac'
 
 pass() {
   printf "[PASS] %s\n" "$1"

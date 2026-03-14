@@ -181,7 +181,7 @@ make deploy PI_USER=<username> PI_HOST=<pi-hostname-or-ip> PI_PATH=/home/<userna
 
 ## Audio Notes
 
-- The installer attempts to set `dtparam=audio=off` and `dtoverlay=hifiberry-dacplus` in the Raspberry Pi boot config.
+- The installer attempts to set `dtparam=audio=off` and `dtoverlay=hifiberry-dac` in the Raspberry Pi boot config.
 - Reboot is required after boot config changes so the DAC overlay loads.
 - Verify output device selection in ALSA/PipeWire depending on your setup.
 - Use a ground loop isolator if alternator noise is present.

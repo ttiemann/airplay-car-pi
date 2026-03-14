@@ -10,7 +10,7 @@ CORE_PACKAGES=(
 )
 
 SHAIRPORT_CONFIG_FILE="/etc/shairport-sync.conf"
-HIFIBERRY_OVERLAY="dtoverlay=hifiberry-dacplus"
+HIFIBERRY_OVERLAY="dtoverlay=hifiberry-dac"
 AIRPLAY_DEVICE_NAME="${AIRPLAY_DEVICE_NAME:-AirPlay Car Pi}"
 AIRPLAY_BACKEND="${AIRPLAY_BACKEND:-alsa}"
 
