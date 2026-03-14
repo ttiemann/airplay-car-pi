@@ -10,7 +10,7 @@ COPY_RETRIES ?= 5
 WAIT_SSH_RETRIES ?= 36
 WAIT_SSH_INTERVAL ?= 5
 
-.PHONY: help check lint unit integration-airplay build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install wait-for-ssh remote-diagnose deploy clean
+.PHONY: help check lint unit integration-airplay perf build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install wait-for-ssh remote-diagnose deploy clean
 
 help:
 	@echo "Available targets:"
