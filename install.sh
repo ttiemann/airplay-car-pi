@@ -39,10 +39,15 @@ install_core_packages() {
 }
 
 get_boot_config_file() {
-  if [[ -f "/boot/firmware/config.txt" ]]; then
-    printf "%s\n" "/boot/firmware/config.txt"
-  elif [[ -f "/boot/config.txt" ]]; then
-    printf "%s\n" "/boot/config.txt"
+  local primary_boot_config legacy_boot_config
+
+  primary_boot_config="${BOOT_CONFIG_PRIMARY:-/boot/firmware/config.txt}"
+  legacy_boot_config="${BOOT_CONFIG_LEGACY:-/boot/config.txt}"
+
+  if [[ -f "${primary_boot_config}" ]]; then
+    printf "%s\n" "${primary_boot_config}"
+  elif [[ -f "${legacy_boot_config}" ]]; then
+    printf "%s\n" "${legacy_boot_config}"
   else
     printf "%s\n" ""
   fi
