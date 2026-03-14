@@ -18,6 +18,7 @@ help:
 	@echo "  make lint                - Run shellcheck if installed"
 	@echo "  make unit                - Run isolated unit tests for installer logic"
 	@echo "  make integration-airplay - Run real sender flow test against target Pi"
+	@echo "  make perf                - Run regression/performance tests on target Pi"
 	@echo "  make build               - Build Docker image"
 	@echo "  make run                 - Run installer in Docker"
 	@echo "  make rerun               - Run installer twice (idempotency check)"
@@ -48,6 +49,9 @@ unit:
 
 integration-airplay:
 	bash tests/integration/airplay_sender_flow_test.sh
+
+perf:
+	bash tests/regression/perf_test.sh
 
 build:
 	docker build -f $(DOCKERFILE) -t $(IMAGE_NAME) .

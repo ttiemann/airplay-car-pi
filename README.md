@@ -159,6 +159,7 @@ Useful targets:
 - `make check` (shell syntax)
 - `make unit` (isolated installer unit tests)
 - `make integration-airplay` (real sender flow test on target hardware)
+- `make perf` (regression/performance tests on target hardware)
 - `make build` (Docker image)
 - `make run` (installer in container)
 - `make rerun` (idempotency check)
