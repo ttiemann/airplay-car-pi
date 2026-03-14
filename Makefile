@@ -4,7 +4,7 @@ IMAGE_NAME ?= airplay-car-pi-test
 DOCKERFILE ?= Dockerfile
 PI_USER ?= pi
 PI_HOST ?= raspberrypi.local
-PI_PATH ?= ~
+PI_PATH ?= /home/$(PI_USER)
 
 .PHONY: help check lint build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install remote-diagnose deploy clean
 
