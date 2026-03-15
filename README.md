@@ -224,6 +224,13 @@ After you push a `v*` tag to GitHub, the `Release` workflow will:
 - upload the packaged files as workflow artifacts
 - create a GitHub Release and attach the assets
 
+CI matrix coverage:
+
+- The `Matrix Compatibility` workflow runs on each push/PR and validates combinations of:
+  - Raspberry Pi Zero W profile (`linux/arm/v6`) with Debian Bookworm and Trixie base images
+  - Raspberry Pi Zero 2 W profile (`linux/arm64`) with Debian Bookworm and Trixie base images
+- For each matrix profile, it builds a compatibility image, runs shell/unit checks, and validates release scripts.
+
 ## Promotion And Rollback
 
 Recommended promotion order:
