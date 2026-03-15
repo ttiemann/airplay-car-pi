@@ -1,0 +1,61 @@
+name: Release
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release tag to package (for example v0.1.0)'
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release version
+        id: version
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            echo "value=${{ github.event.inputs.version }}" >> "${GITHUB_OUTPUT}"
+          else
+            echo "value=${GITHUB_REF_NAME}" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Generate changelog
+        run: make changelog VERSION=${{ steps.version.outputs.value }}
+
+      - name: Package release artifacts
+        run: make package VERSION=${{ steps.version.outputs.value }}
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ steps.version.outputs.value }}
+          path: |
+            dist/CHANGELOG-${{ steps.version.outputs.value }}.md
+            dist/airplay-car-pi-${{ steps.version.outputs.value }}.tar.gz
+            dist/airplay-car-pi-${{ steps.version.outputs.value }}.zip
+            dist/airplay-car-pi-${{ steps.version.outputs.value }}.sha256
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.value }}
+          body_path: dist/CHANGELOG-${{ steps.version.outputs.value }}.md
+          files: |
+            dist/airplay-car-pi-${{ steps.version.outputs.value }}.tar.gz
+            dist/airplay-car-pi-${{ steps.version.outputs.value }}.zip
+            dist/airplay-car-pi-${{ steps.version.outputs.value }}.sha256

@@ -9,31 +9,36 @@ SSH_CONNECT_TIMEOUT ?= 20
 COPY_RETRIES ?= 5
 WAIT_SSH_RETRIES ?= 36
 WAIT_SSH_INTERVAL ?= 5
+RELEASE_VERSION ?=
 
-.PHONY: help check lint unit integration-airplay perf security build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install wait-for-ssh remote-diagnose deploy clean
+.PHONY: help check lint unit integration-airplay perf security changelog package release-prep tag-release build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install wait-for-ssh remote-diagnose deploy clean
 
 help:
 	@echo "Available targets:"
-	@echo "  make check               - Validate install.sh syntax"
-	@echo "  make lint                - Run shellcheck if installed"
-	@echo "  make unit                - Run isolated unit tests for installer logic"
-	@echo "  make integration-airplay - Run real sender flow test against target Pi"
-	@echo "  make perf                - Run regression/performance tests on target Pi"
-	@echo "  make security            - Run security checks (shellcheck all, secrets, trivy, gitleaks)"
-	@echo "  make build               - Build Docker image"
-	@echo "  make run                 - Run installer in Docker"
-	@echo "  make rerun               - Run installer twice (idempotency check)"
-	@echo "  make diagnose-container  - Run diagnose.sh in Docker"
-	@echo "  make verify-packages     - Verify expected packages in container"
-	@echo "  make test-no-network     - Run installer without network (negative test)"
-	@echo "  make test                - Run check, lint, build, run, verify-packages"
-	@echo "  make shell               - Open shell in built image"
-	@echo "  make copy-scripts        - Copy install.sh and diagnose.sh to Raspberry Pi"
-	@echo "  make remote-install      - Run installer on Raspberry Pi over SSH"
-	@echo "  make wait-for-ssh        - Wait until SSH on Raspberry Pi is reachable"
-	@echo "  make remote-diagnose     - Run diagnostics on Raspberry Pi over SSH"
-	@echo "  make deploy              - Copy scripts, run installer, then diagnostics"
-	@echo "  make clean               - Remove Docker image"
+	@echo "  make check                       - Validate install.sh syntax"
+	@echo "  make lint                        - Run shellcheck if installed"
+	@echo "  make unit                        - Run isolated unit tests for installer logic"
+	@echo "  make integration-airplay         - Run real sender flow test against target Pi"
+	@echo "  make perf                        - Run regression/performance tests on target Pi"
+	@echo "  make security                    - Run security checks (shellcheck all, secrets, trivy, gitleaks)"
+	@echo "  make changelog VERSION=vX.Y.Z    - Generate dist changelog from git history"
+	@echo "  make package VERSION=vX.Y.Z      - Build release tar.gz/zip artifacts in dist/"
+	@echo "  make release-prep VERSION=vX.Y.Z - Generate changelog and packages together"
+	@echo "  make tag-release VERSION=vX.Y.Z  - Create annotated git tag locally"
+	@echo "  make build                       - Build Docker image"
+	@echo "  make run                         - Run installer in Docker"
+	@echo "  make rerun                       - Run installer twice (idempotency check)"
+	@echo "  make diagnose-container          - Run diagnose.sh in Docker"
+	@echo "  make verify-packages             - Verify expected packages in container"
+	@echo "  make test-no-network             - Run installer without network (negative test)"
+	@echo "  make test                        - Run check, lint, build, run, verify-packages"
+	@echo "  make shell                       - Open shell in built image"
+	@echo "  make copy-scripts                - Copy install.sh and diagnose.sh to Raspberry Pi"
+	@echo "  make remote-install              - Run installer on Raspberry Pi over SSH"
+	@echo "  make wait-for-ssh                - Wait until SSH on Raspberry Pi is reachable"
+	@echo "  make remote-diagnose             - Run diagnostics on Raspberry Pi over SSH"
+	@echo "  make deploy                      - Copy scripts, run installer, then diagnostics"
+	@echo "  make clean                       - Remove Docker image"
 
 check:
 	bash -n install.sh
@@ -56,6 +61,23 @@ perf:
 
 security:
 	bash tests/security/security_check.sh
+
+changelog:
+	@test -n "$(RELEASE_VERSION)$(VERSION)" || (echo "Set VERSION=vX.Y.Z" && exit 1)
+	@echo "$(or $(VERSION),$(RELEASE_VERSION))" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$$' || (echo "VERSION must match vX.Y.Z" && exit 1)
+	bash scripts/release/generate_changelog.sh $(or $(VERSION),$(RELEASE_VERSION))
+
+package:
+	@test -n "$(RELEASE_VERSION)$(VERSION)" || (echo "Set VERSION=vX.Y.Z" && exit 1)
+	@echo "$(or $(VERSION),$(RELEASE_VERSION))" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$$' || (echo "VERSION must match vX.Y.Z" && exit 1)
+	bash scripts/release/package_release.sh $(or $(VERSION),$(RELEASE_VERSION))
+
+release-prep: changelog package
+
+tag-release:
+	@test -n "$(RELEASE_VERSION)$(VERSION)" || (echo "Set VERSION=vX.Y.Z" && exit 1)
+	@echo "$(or $(VERSION),$(RELEASE_VERSION))" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$$' || (echo "VERSION must match vX.Y.Z" && exit 1)
+	git tag -a $(or $(VERSION),$(RELEASE_VERSION)) -m "Release $(or $(VERSION),$(RELEASE_VERSION))"
 
 build:
 	docker build -f $(DOCKERFILE) -t $(IMAGE_NAME) .

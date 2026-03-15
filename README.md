@@ -161,6 +161,10 @@ Useful targets:
 - `make integration-airplay` (real sender flow test on target hardware)
 - `make perf` (regression/performance tests on target hardware)
 - `make security` (shellcheck all scripts, secret scan, trivy CVE scan, gitleaks)
+- `make changelog VERSION=vX.Y.Z` (generate release changelog into `dist/`)
+- `make package VERSION=vX.Y.Z` (build release tar.gz/zip/checksums into `dist/`)
+- `make release-prep VERSION=vX.Y.Z` (generate changelog and package artifacts together)
+- `make tag-release VERSION=vX.Y.Z` (create an annotated git tag locally)
 - `make build` (Docker image)
 - `make run` (installer in container)
 - `make rerun` (idempotency check)
@@ -191,6 +195,34 @@ make integration-airplay PI_USER=<username> PI_HOST=<pi-hostname-or-ip> AIRPLAY_
 ```
 
 When prompted, start playback from a real sender (iPhone, iPad, or macOS) to the receiver. The test passes when an active AirPlay session is detected on the receiver ports.
+
+## Releases
+
+Local release preparation:
+
+```bash
+make release-prep VERSION=v0.1.0
+```
+
+This creates the following in `dist/`:
+
+- `CHANGELOG-v0.1.0.md`
+- `airplay-car-pi-v0.1.0.tar.gz`
+- `airplay-car-pi-v0.1.0.zip`
+- `airplay-car-pi-v0.1.0.sha256`
+
+Create a local annotated tag:
+
+```bash
+make tag-release VERSION=v0.1.0
+```
+
+After you push a `v*` tag to GitHub, the `Release` workflow will:
+
+- generate the changelog from git history
+- package the repository into tar.gz and zip artifacts
+- upload the packaged files as workflow artifacts
+- create a GitHub Release and attach the assets
 
 ## Audio Notes
 
