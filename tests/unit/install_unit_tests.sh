@@ -69,11 +69,14 @@ test_generate_shairport_config_uses_selected_values() {
   tmp_dir="$(mktemp -d)"
   config_file="${tmp_dir}/shairport-sync.conf"
 
-  # shellcheck disable=SC2034
   # Variables below are read by functions sourced from install.sh.
+  # shellcheck disable=SC2034
   SHAIRPORT_CONFIG_FILE="$config_file"
+  # shellcheck disable=SC2034
   AIRPLAY_DEVICE_NAME="Unit Test Receiver"
+  # shellcheck disable=SC2034
   AIRPLAY_BACKEND="alsa"
+  # shellcheck disable=SC2034
   AIRPLAY_MIXER_CONTROL_NAME="Playback Digital"
 
   generate_shairport_config >/dev/null
@@ -90,11 +93,14 @@ test_generate_shairport_config_uses_software_mixer_when_no_control_available() {
   tmp_dir="$(mktemp -d)"
   config_file="${tmp_dir}/shairport-sync.conf"
 
-  # shellcheck disable=SC2034
   # Variables below are read by functions sourced from install.sh.
+  # shellcheck disable=SC2034
   SHAIRPORT_CONFIG_FILE="$config_file"
+  # shellcheck disable=SC2034
   AIRPLAY_DEVICE_NAME="Unit Test Receiver"
+  # shellcheck disable=SC2034
   AIRPLAY_BACKEND="alsa"
+  # shellcheck disable=SC2034
   AIRPLAY_MIXER_CONTROL_NAME=""
 
   amixer() { return 127; }
@@ -128,9 +134,10 @@ test_configure_hifiberry_dac_is_idempotent() {
   tmp_dir="$(mktemp -d)"
   boot_cfg="${tmp_dir}/config.txt"
 
-  # shellcheck disable=SC2034
   # Variables below are read by functions sourced from install.sh.
+  # shellcheck disable=SC2034
   BOOT_CONFIG_PRIMARY="$boot_cfg"
+  # shellcheck disable=SC2034
   BOOT_CONFIG_LEGACY="${tmp_dir}/unused-legacy.txt"
 
   cat >"$boot_cfg" <<'EOF'
