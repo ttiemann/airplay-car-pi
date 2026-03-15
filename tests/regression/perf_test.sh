@@ -10,7 +10,7 @@ set -euo pipefail
 # gracefully when that is not available.
 #
 # Usage:
-#   PI_USER=carpi PI_HOST=192.168.42.69 bash tests/regression/perf_test.sh
+#   PI_USER=carpi PI_HOST=<pi-hostname-or-ip> bash tests/regression/perf_test.sh
 
 PI_USER="${PI_USER:-pi}"
 PI_HOST="${PI_HOST:-raspberrypi.local}"
