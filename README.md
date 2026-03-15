@@ -224,6 +224,47 @@ After you push a `v*` tag to GitHub, the `Release` workflow will:
 - upload the packaged files as workflow artifacts
 - create a GitHub Release and attach the assets
 
+## Promotion And Rollback
+
+Recommended promotion order:
+
+- `dev` -> `staging` -> `prod`
+
+Create three GitHub Environments named `dev`, `staging`, and `prod`.
+Store these environment-specific secrets in each one:
+
+- `PI_HOST`
+- `PI_USER`
+- `PI_PATH`
+- `PI_SSH_KEY`
+
+Promotion workflow:
+
+- Run the `Promote` workflow manually.
+- Choose a released tag such as `v0.1.0`.
+- Choose the target environment (`dev`, `staging`, or `prod`).
+- The workflow will create a rollback snapshot on the target Pi, deploy the selected release, and run diagnostics.
+- For `staging`, it also runs `make perf` after deployment.
+
+Local rollback snapshot commands:
+
+```bash
+make backup-remote PI_USER=<username> PI_HOST=<pi-hostname-or-ip> PI_PATH=/home/<username>
+make rollback-remote PI_USER=<username> PI_HOST=<pi-hostname-or-ip> PI_PATH=/home/<username> SNAPSHOT_ID=<timestamp>
+```
+
+Rollback strategy:
+
+- `restore-snapshot`: restore `/etc/shairport-sync.conf`, the Raspberry Pi boot config, and the last deployed scripts from a saved snapshot on the Pi.
+- `redeploy-tag`: redeploy an older tagged release to the target environment.
+
+Rollback workflow:
+
+- Run the `Rollback` workflow manually.
+- Choose the target environment.
+- Choose either `restore-snapshot` or `redeploy-tag`.
+- Provide `snapshot_id` for snapshot restore, or `version` for tag redeploy.
+
 ## Audio Notes
 
 - The installer attempts to set `dtparam=audio=off` and `dtoverlay=hifiberry-dac` in the Raspberry Pi boot config.

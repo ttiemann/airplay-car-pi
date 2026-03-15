@@ -1,0 +1,75 @@
+name: Rollback
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: 'Environment to roll back'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      rollback_mode:
+        description: 'Rollback method'
+        required: true
+        type: choice
+        options:
+          - restore-snapshot
+          - redeploy-tag
+      snapshot_id:
+        description: 'Snapshot id for restore-snapshot mode'
+        required: false
+      version:
+        description: 'Release tag for redeploy-tag mode (for example v0.1.0)'
+        required: false
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.target_environment }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.version || github.ref_name }}
+
+      - name: Configure SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' '${{ secrets.PI_SSH_KEY }}' > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H '${{ secrets.PI_HOST }}' >> ~/.ssh/known_hosts
+
+      - name: Restore rollback snapshot
+        if: ${{ github.event.inputs.rollback_mode == 'restore-snapshot' }}
+        env:
+          PI_USER: ${{ secrets.PI_USER }}
+          PI_HOST: ${{ secrets.PI_HOST }}
+          PI_PATH: ${{ secrets.PI_PATH }}
+          SNAPSHOT_ID: ${{ github.event.inputs.snapshot_id }}
+        run: |
+          test -n "${SNAPSHOT_ID}" || (echo "snapshot_id is required for restore-snapshot" && exit 1)
+          make rollback-remote SNAPSHOT_ID="${SNAPSHOT_ID}"
+
+      - name: Redeploy tagged release
+        if: ${{ github.event.inputs.rollback_mode == 'redeploy-tag' }}
+        env:
+          PI_USER: ${{ secrets.PI_USER }}
+          PI_HOST: ${{ secrets.PI_HOST }}
+          PI_PATH: ${{ secrets.PI_PATH }}
+        run: |
+          test -n '${{ github.event.inputs.version }}' || (echo "version is required for redeploy-tag" && exit 1)
+          make deploy
+
+      - name: Run post-rollback diagnostics
+        env:
+          PI_USER: ${{ secrets.PI_USER }}
+          PI_HOST: ${{ secrets.PI_HOST }}
+          PI_PATH: ${{ secrets.PI_PATH }}
+        run: make remote-diagnose

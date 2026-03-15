@@ -10,8 +10,9 @@ COPY_RETRIES ?= 5
 WAIT_SSH_RETRIES ?= 36
 WAIT_SSH_INTERVAL ?= 5
 RELEASE_VERSION ?=
+SNAPSHOT_ID ?=
 
-.PHONY: help check lint unit integration-airplay perf security changelog package release-prep tag-release build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install wait-for-ssh remote-diagnose deploy clean
+.PHONY: help check lint unit integration-airplay perf security changelog package release-prep tag-release backup-remote rollback-remote build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install wait-for-ssh remote-diagnose deploy clean
 
 help:
 	@echo "Available targets:"
@@ -34,6 +35,8 @@ help:
 	@echo "  make test                        - Run check, lint, build, run, verify-packages"
 	@echo "  make shell                       - Open shell in built image"
 	@echo "  make copy-scripts                - Copy install.sh and diagnose.sh to Raspberry Pi"
+	@echo "  make backup-remote               - Save remote rollback snapshot before promotion"
+	@echo "  make rollback-remote SNAPSHOT_ID=<id> - Restore a saved remote rollback snapshot"
 	@echo "  make remote-install              - Run installer on Raspberry Pi over SSH"
 	@echo "  make wait-for-ssh                - Wait until SSH on Raspberry Pi is reachable"
 	@echo "  make remote-diagnose             - Run diagnostics on Raspberry Pi over SSH"
@@ -102,6 +105,13 @@ test: check lint build run verify-packages
 
 shell: build
 	docker run --rm -it --entrypoint bash $(IMAGE_NAME)
+
+backup-remote:
+	bash scripts/deploy/create_backup.sh
+
+rollback-remote:
+	@test -n "$(SNAPSHOT_ID)" || (echo "Set SNAPSHOT_ID=<timestamp>" && exit 1)
+	bash scripts/deploy/rollback_backup.sh $(SNAPSHOT_ID)
 
 copy-scripts:
 	@for i in $$(seq 1 $(COPY_RETRIES)); do \
