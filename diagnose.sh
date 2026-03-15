@@ -112,6 +112,72 @@ check_network() {
   fi
 }
 
+detect_configured_ssid() {
+  local ssid
+
+  if [[ -f /etc/wpa_supplicant/wpa_supplicant.conf ]]; then
+    ssid="$(sed -n 's/^[[:space:]]*ssid="\([^"]*\)".*/\1/p' /etc/wpa_supplicant/wpa_supplicant.conf | head -n1 || true)"
+    if [[ -n "${ssid}" ]]; then
+      printf "%s\n" "${ssid}"
+      return
+    fi
+  fi
+
+  ssid="$(grep -h '^ssid=' /etc/NetworkManager/system-connections/*.nmconnection 2>/dev/null | sed -n 's/^ssid=//p' | head -n1 || true)"
+  if [[ -n "${ssid}" ]]; then
+    printf "%s\n" "${ssid}"
+    return
+  fi
+
+  printf "%s\n" ""
+}
+
+get_current_ssid() {
+  nmcli -t -f active,ssid dev wifi 2>/dev/null | awk -F: '/^yes/{print $2; exit}' || true
+}
+
+check_wifi_mode() {
+  local expected_home_ssid current_ssid
+
+  expected_home_ssid="${HOME_WIFI_SSID:-}"
+
+  if [[ -z "${expected_home_ssid}" ]]; then
+    expected_home_ssid="$(detect_configured_ssid)"
+  fi
+
+  if [[ -z "${expected_home_ssid}" ]]; then
+    info "Could not auto-detect a configured home SSID; skipping home-vs-car Wi-Fi mode check"
+    return
+  fi
+
+  if ! command -v iwgetid >/dev/null 2>&1; then
+    warn "iwgetid not found; cannot detect current Wi-Fi SSID"
+    return
+  fi
+
+  # If NetworkManager hotspot is active, wlan0 is in AP mode.
+  if has_running_systemd && command -v nmcli >/dev/null 2>&1 && \
+     nmcli -t -f NAME connection show --active 2>/dev/null | grep -qi hotspot; then
+    warn "Network mode: AWAY (car hotspot is active)"
+    return
+  fi
+
+  current_ssid="$(get_current_ssid)"
+
+  if [[ -z "${current_ssid}" ]]; then
+    warn "No active Wi-Fi SSID detected (likely away from home Wi-Fi / car mode)"
+    return
+  fi
+
+  info "Current Wi-Fi SSID: ${current_ssid}"
+
+  if [[ "${current_ssid}" == "${expected_home_ssid}" ]]; then
+    pass "Network mode: CONFIGURED_SSID"
+  else
+    warn "Network mode: AWAY (configured SSID not seen: '${expected_home_ssid}')"
+  fi
+}
+
 main() {
   info "Running airplay-car-pi diagnostics"
   check_service_active
@@ -119,6 +185,7 @@ main() {
   check_config_file
   check_audio_devices
   check_network
+  check_wifi_mode
   show_recent_logs
   info "Diagnostics complete"
 }

@@ -66,6 +66,8 @@ Optional: also copy the diagnostic script:
 scp ./diagnose.sh <username>@<pi-hostname-or-ip>:~/diagnose.sh
 ```
 
+Optional: the diagnostic script can auto-detect your configured SSID (the one set in Raspberry Pi Imager) to classify client vs away/car mode.
+
 5. Run the installer:
 
 ```bash
@@ -97,16 +99,51 @@ Current bootstrap actions:
 
 - Runs `apt-get update`
 - Runs `apt-get upgrade -y`
-- Installs `alsa-utils`, `avahi-daemon`, and `shairport-sync`
+- Installs `alsa-utils`, `avahi-daemon`, `network-manager`, and `shairport-sync`
 - Configures Raspberry Pi boot audio settings for HiFiBerry DAC+ Zero
 - Generates `/etc/shairport-sync.conf` (with timestamped backup if it exists)
 - Enables and restarts `shairport-sync` when systemd is available
+- Installs a periodic home-vs-car mode detector timer
 
 Supported environment variables:
 
 - `AIRPLAY_DEVICE_NAME` (default: `AirPlay Car Pi`)
 - `AIRPLAY_BACKEND` (default: `alsa`)
 - `AIRPLAY_MIXER_CONTROL_NAME` (optional override; auto-detected if unset)
+- `AIRPLAY_CAR_SUFFIX` (default: ` [CAR]`; appended to AirPlay name when away from home)
+- `CAR_AP_SSID` (default: `AirPlay-Car-Pi`; Wi-Fi network name of the car hotspot)
+- `CAR_AP_PASSWORD` (default: `airplaycarpi`; **change this** to a strong passphrase)
+- `CAR_AP_IFACE` (default: `wlan0`)
+- `CAR_AP_CHANNEL` (default: `6`)
+
+The installer also sets up a systemd timer on the Pi that checks Wi-Fi mode automatically every 30 seconds. It auto-detects your configured SSID from Raspberry Pi network configuration (including Raspberry Pi Imager setup). In away/car mode it appends `AIRPLAY_CAR_SUFFIX` to the advertised AirPlay name, so you can detect mode directly from your phone without SSH access.
+
+Example install with automatic mode labeling:
+
+```bash
+sudo AIRPLAY_DEVICE_NAME="Car AirPlay" CAR_AP_SSID="MyCar" CAR_AP_PASSWORD="mysecurepassword" ./install.sh
+```
+
+## Access Point in Car Mode
+
+When the Pi is away from home Wi-Fi, a mode-check timer (every 30 s) automatically:
+
+1. Calls `nmcli device wifi hotspot` to create a WPA2 access point on `wlan0`
+2. NetworkManager handles `hostapd` and DHCP internally — no extra packages needed
+3. Renames the AirPlay receiver to `<name> [CAR]` so you can see mode from any Apple device
+
+When the Pi boots back on the home network, the hotspot is torn down and the Pi reconnects as a normal client.
+
+Connect to the hotspot from your iPhone/Mac:
+
+| Field    | Value |
+|----------|-------|
+| SSID     | `AirPlay-Car-Pi` (or your `CAR_AP_SSID`) |
+| Password | `airplaycarpi` (or your `CAR_AP_PASSWORD`) |
+| Pi IP    | `192.168.99.1` |
+
+Then open the AirPlay output selector and choose your receiver — it will show the `[CAR]` suffix.
+```
 
 ## Usage
 
@@ -125,6 +162,15 @@ sudo systemctl status shairport-sync --no-pager
 sudo systemctl restart shairport-sync
 sudo journalctl -u shairport-sync -f
 ```
+
+To classify current network mode in diagnostics:
+
+```bash
+./diagnose.sh
+```
+
+- `CONFIGURED_SSID`: connected to your configured SSID — client mode, no hotspot
+- `AWAY`: configured SSID not found — hotspot active, AirPlay name has `[CAR]` suffix
 
 If your service name differs, replace `shairport-sync` with the installed unit name.
 
