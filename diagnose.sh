@@ -150,8 +150,8 @@ check_wifi_mode() {
     return
   fi
 
-  if ! command -v iwgetid >/dev/null 2>&1; then
-    warn "iwgetid not found; cannot detect current Wi-Fi SSID"
+  if ! command -v nmcli >/dev/null 2>&1; then
+    warn "nmcli not found; cannot detect current Wi-Fi SSID"
     return
   fi
 
