@@ -18,39 +18,39 @@ ssh -tt -o ConnectTimeout="${SSH_CONNECT_TIMEOUT}" "${PI_USER}@${PI_HOST}" "bash
 set -euo pipefail
 snapshot_dir="${ROLLBACK_ROOT}/${SNAPSHOT_ID}"
 
-if [[ ! -d "\${snapshot_dir}" ]]; then
-  echo "Snapshot not found: \${snapshot_dir}"
+if [[ ! -d "${snapshot_dir}" ]]; then
+  echo "Snapshot not found: ${snapshot_dir}"
   exit 1
 fi
 
 restore_if_exists() {
-  local source_path="\$1"
-  local target_path="\$2"
-  if sudo test -f "\${source_path}"; then
-    sudo cp -a "\${source_path}" "\${target_path}"
+  local source_path="$1"
+  local target_path="$2"
+  if sudo test -f "${source_path}"; then
+    sudo cp -a "${source_path}" "${target_path}"
   fi
 }
 
-restore_if_exists "\${snapshot_dir}/shairport-sync.conf" /etc/shairport-sync.conf
+restore_if_exists "${snapshot_dir}/shairport-sync.conf" /etc/shairport-sync.conf
 
-if sudo test -f "\${snapshot_dir}/boot-config.txt"; then
+if sudo test -f "${snapshot_dir}/boot-config.txt"; then
   boot_target=/boot/firmware/config.txt
-  if sudo test -f "\${snapshot_dir}/boot-config-path.txt"; then
-    boot_target="\$(sudo cat "\${snapshot_dir}/boot-config-path.txt")"
+  if sudo test -f "${snapshot_dir}/boot-config-path.txt"; then
+    boot_target="$(sudo cat "${snapshot_dir}/boot-config-path.txt")"
   elif sudo test -f /boot/config.txt; then
     boot_target=/boot/config.txt
   fi
-  sudo cp -a "\${snapshot_dir}/boot-config.txt" "\${boot_target}"
+  sudo cp -a "${snapshot_dir}/boot-config.txt" "${boot_target}"
 fi
 
-if test -f "\${snapshot_dir}/install.sh"; then
-  cp -a "\${snapshot_dir}/install.sh" "${PI_PATH}/install.sh"
+if test -f "${snapshot_dir}/install.sh"; then
+  cp -a "${snapshot_dir}/install.sh" "${PI_PATH}/install.sh"
 fi
-if test -f "\${snapshot_dir}/diagnose.sh"; then
-  cp -a "\${snapshot_dir}/diagnose.sh" "${PI_PATH}/diagnose.sh"
+if test -f "${snapshot_dir}/diagnose.sh"; then
+  cp -a "${snapshot_dir}/diagnose.sh" "${PI_PATH}/diagnose.sh"
 fi
 
 sudo systemctl restart shairport-sync || true
 
-echo "Rollback restored from snapshot: \${snapshot_dir}"
+echo "Rollback restored from snapshot: ${snapshot_dir}"
 EOF
