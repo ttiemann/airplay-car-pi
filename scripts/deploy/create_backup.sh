@@ -8,8 +8,11 @@ SSH_CONNECT_TIMEOUT="${SSH_CONNECT_TIMEOUT:-20}"
 SNAPSHOT_ID="${SNAPSHOT_ID:-$(date +%Y%m%d%H%M%S)}"
 ROLLBACK_ROOT="${ROLLBACK_ROOT:-${PI_PATH}/airplay-car-pi-rollbacks}"
 
-ssh -o ConnectTimeout="${SSH_CONNECT_TIMEOUT}" "${PI_USER}@${PI_HOST}" "bash -s" <<EOF
+ssh -o ConnectTimeout="${SSH_CONNECT_TIMEOUT}" "${PI_USER}@${PI_HOST}" bash -s -- "${ROLLBACK_ROOT}" "${SNAPSHOT_ID}" "${PI_PATH}" <<'EOF'
 set -euo pipefail
+ROLLBACK_ROOT="$1"
+SNAPSHOT_ID="$2"
+PI_PATH="$3"
 snapshot_dir="${ROLLBACK_ROOT}/${SNAPSHOT_ID}"
 mkdir -p "${snapshot_dir}"
 

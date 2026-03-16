@@ -14,8 +14,11 @@ if [[ -z "${SNAPSHOT_ID}" ]]; then
   exit 1
 fi
 
-ssh -tt -o ConnectTimeout="${SSH_CONNECT_TIMEOUT}" "${PI_USER}@${PI_HOST}" "bash -s" <<EOF
+ssh -tt -o ConnectTimeout="${SSH_CONNECT_TIMEOUT}" "${PI_USER}@${PI_HOST}" bash -s -- "${ROLLBACK_ROOT}" "${SNAPSHOT_ID}" "${PI_PATH}" <<'EOF'
 set -euo pipefail
+ROLLBACK_ROOT="$1"
+SNAPSHOT_ID="$2"
+PI_PATH="$3"
 snapshot_dir="${ROLLBACK_ROOT}/${SNAPSHOT_ID}"
 
 if [[ ! -d "${snapshot_dir}" ]]; then
