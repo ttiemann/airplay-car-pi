@@ -159,8 +159,12 @@ configure_hifiberry_dac() {
   fi
 }
 
+has_running_systemd() {
+  command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]
+}
+
 configure_shairport_service() {
-  if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
+  if has_running_systemd; then
     log "Enabling and restarting shairport-sync"
     systemctl enable shairport-sync
     systemctl restart shairport-sync
@@ -324,7 +328,7 @@ EOF
 }
 
 configure_mode_detector_service() {
-  if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
+  if has_running_systemd; then
     log "Enabling airplay-car-pi mode detector timer"
     systemctl daemon-reload
     systemctl enable --now airplay-car-pi-mode.timer
