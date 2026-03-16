@@ -31,32 +31,34 @@ has_running_systemd() {
   command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]
 }
 
-check_service_active() {
+check_systemd_unit_state() {
+  local subcommand state_label
+  subcommand="$1"
+  state_label="$2"
+
   if has_running_systemd; then
-    if run_sudo_if_needed systemctl is-active --quiet "${SERVICE_NAME}"; then
-      pass "${SERVICE_NAME} is active"
+    if run_sudo_if_needed systemctl "${subcommand}" --quiet "${SERVICE_NAME}"; then
+      pass "${SERVICE_NAME} is ${state_label}"
     else
-      warn "${SERVICE_NAME} is not active"
+      warn "${SERVICE_NAME} is not ${state_label}"
     fi
   elif command -v systemctl >/dev/null 2>&1; then
     warn "systemctl is installed, but systemd is not running"
   else
-    warn "systemctl not found, cannot check service state"
+    warn "systemctl not found, cannot check ${subcommand} state"
   fi
 }
 
+check_service_active() {
+  check_systemd_unit_state \
+    "is-active" \
+    "active"
+}
+
 check_service_enabled() {
-  if has_running_systemd; then
-    if run_sudo_if_needed systemctl is-enabled --quiet "${SERVICE_NAME}"; then
-      pass "${SERVICE_NAME} is enabled at boot"
-    else
-      warn "${SERVICE_NAME} is not enabled at boot"
-    fi
-  elif command -v systemctl >/dev/null 2>&1; then
-    warn "systemctl is installed, but systemd is not running"
-  else
-    warn "systemctl not found, cannot check service enablement"
-  fi
+  check_systemd_unit_state \
+    "is-enabled" \
+    "enabled at boot"
 }
 
 check_config_file() {
