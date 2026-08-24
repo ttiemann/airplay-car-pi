@@ -110,7 +110,7 @@ Supported environment variables:
 - `AIRPLAY_DEVICE_NAME` (default: `AirPlay Car Pi`)
 - `AIRPLAY_BACKEND` (default: `alsa`)
 - `AIRPLAY_MIXER_CONTROL_NAME` (optional override; auto-detected if unset)
-- `AIRPLAY_CAR_SUFFIX` (default: ` [CAR]`; appended to AirPlay name when away from home)
+- `AIRPLAY_CAR_SUFFIX` (default: " [CAR]"; appended to AirPlay name when away from home)
 - `CAR_AP_SSID` (default: `AirPlay-Car-Pi`; Wi-Fi network name of the car hotspot)
 - `CAR_AP_PASSWORD` (default: `airplaycarpi`; **change this** to a strong passphrase)
 - `CAR_AP_IFACE` (default: `wlan0`)
@@ -136,14 +136,13 @@ When the Pi boots back on the home network, the hotspot is torn down and the Pi 
 
 Connect to the hotspot from your iPhone/Mac:
 
-| Field    | Value |
-|----------|-------|
-| SSID     | `AirPlay-Car-Pi` (or your `CAR_AP_SSID`) |
+| Field    | Value                                      |
+|----------|--------------------------------------------|
+| SSID     | `AirPlay-Car-Pi` (or your `CAR_AP_SSID`)   |
 | Password | `airplaycarpi` (or your `CAR_AP_PASSWORD`) |
-| Pi IP    | `192.168.99.1` |
+| Pi IP    | `192.168.99.1`                             |
 
 Then open the AirPlay output selector and choose your receiver — it will show the `[CAR]` suffix.
-```
 
 ## Usage
 
