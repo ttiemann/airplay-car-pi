@@ -33,8 +33,10 @@ check_shellcheck() {
     return
   fi
 
-  local scripts errors=0
-  mapfile -t scripts < <(find "${REPO_ROOT}" -name "*.sh" -not -path "*/\.*")
+  local scripts=() errors=0
+  while IFS= read -r line; do
+    scripts+=("$line")
+  done < <(find "${REPO_ROOT}" -name "*.sh" -not -path "*/\.*")
 
   info "Found ${#scripts[@]} script(s):"
   for s in "${scripts[@]}"; do
