@@ -2,8 +2,8 @@ SHELL := /bin/bash
 
 IMAGE_NAME ?= airplay-car-pi-test
 DOCKERFILE ?= Dockerfile
-PI_USER ?= pi
-PI_HOST ?= raspberrypi.local
+PI_USER ?= airplay
+PI_HOST ?= airplay-car
 PI_PATH ?= /home/$(PI_USER)
 SSH_CONNECT_TIMEOUT ?= 20
 COPY_RETRIES ?= 5
