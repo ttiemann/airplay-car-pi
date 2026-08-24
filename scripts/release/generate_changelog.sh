@@ -46,7 +46,7 @@ fi
   fi
   echo
 
-  git -C "${REPO_ROOT}" log ${RANGE} --pretty=format:'- %s (%h)' --no-merges
+  git -C "${REPO_ROOT}" log "${RANGE}" --pretty=format:'- %s (%h)' --no-merges
 
   echo
   echo

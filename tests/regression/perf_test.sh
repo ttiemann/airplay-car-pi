@@ -110,9 +110,9 @@ test_idle_cpu() {
     # ps -o pcpu= prints just the CPU% for the process (no header, no awk quoting issues).
     # tr + cut convert "  1.2" → integer "1".
     pct="$(remote \
-      'pid=$(pgrep -x shairport-sync 2>/dev/null | head -n1 || true); \
-       [ -z "$pid" ] && echo 0 && exit 0; \
-       ps -p "$pid" -o pcpu= 2>/dev/null | tr -d " " | cut -d. -f1 || echo 0' \
+      "pid=\$(pgrep -x shairport-sync 2>/dev/null | head -n1 || true); \
+       [ -z \"\$pid\" ] && echo 0 && exit 0; \
+       ps -p \"\$pid\" -o pcpu= 2>/dev/null | tr -d \" \" | cut -d. -f1 || echo 0" \
     || echo 0)"
     total=$((total + pct))
     [[ "${round}" -lt 3 ]] && sleep 2

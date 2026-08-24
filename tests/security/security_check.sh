@@ -61,10 +61,10 @@ check_hardcoded_secrets() {
   local patterns=(
     'BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY'
     'AKIA[0-9A-Z]{16}'                         # AWS access key ID
-    'password\s*=\s*"[^"$({][^"]*"'            # password = "literal"
-    'secret\s*=\s*"[^"$({][^"]*"'              # secret   = "literal"
-    'token\s*=\s*"[^"$({][^"]*"'               # token    = "literal"
-    'api[_-]?key\s*=\s*"[^"$({][^"]*"'         # api_key  = "literal"
+    'password\s*=\s*"[^"({$][^"]*"'            # password = "literal"
+    'secret\s*=\s*"[^"({$][^"]*"'              # secret   = "literal"
+    'token\s*=\s*"[^"({$][^"]*"'               # token    = "literal"
+    'api[_-]?key\s*=\s*"[^"({$][^"]*"'         # api_key  = "literal"
   )
 
   local hits=0 pattern
