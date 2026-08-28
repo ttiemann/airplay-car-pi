@@ -103,6 +103,9 @@ test_idle_cpu() {
     return
   fi
 
+  # Let post-restart CPU warm-up (soxr thread startup) settle before sampling.
+  sleep 10
+
   info "Sampling idle CPU (3 rounds, 2s apart)..."
 
   local total=0 rounds=3 round pct
