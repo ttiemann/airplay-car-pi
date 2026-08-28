@@ -124,10 +124,9 @@ EOF
 
   if [[ -n "${mixer_control_name}" ]]; then
     printf "  mixer_control_name = \"%s\";\n" "${mixer_control_name}" >>"${SHAIRPORT_CONFIG_FILE}"
-  else
-    # Fallback to software volume if no ALSA mixer control is discoverable.
-    printf "  mixer_type = \"software\";\n" >>"${SHAIRPORT_CONFIG_FILE}"
   fi
+  # No mixer_control_name means shairport-sync falls back to software volume
+  # control automatically; the "mixer_type" setting is deprecated and ignored.
 
   cat >>"${SHAIRPORT_CONFIG_FILE}" <<EOF
 };

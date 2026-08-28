@@ -110,7 +110,7 @@ test_generate_shairport_config_uses_software_mixer_when_no_control_available() {
 
   unset -f amixer
 
-  assert_contains "$config_file" 'mixer_type = "software";'
+  assert_not_contains "$config_file" 'mixer_type = "software";'
   assert_not_contains "$config_file" 'mixer_control_name = "'
 }
 
