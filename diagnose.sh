@@ -116,20 +116,38 @@ check_network() {
 }
 
 detect_configured_ssid() {
-  local ssid
+  local ssid conf_file
 
   if [[ -f /etc/wpa_supplicant/wpa_supplicant.conf ]]; then
-    ssid="$(sed -n 's/^[[:space:]]*ssid="\([^"]*\)".*/\1/p' /etc/wpa_supplicant/wpa_supplicant.conf | head -n1 || true)"
+    # File is typically root-only (0600); use sudo to read it if needed.
+    ssid="$(run_sudo_if_needed cat /etc/wpa_supplicant/wpa_supplicant.conf 2>/dev/null | sed -n 's/^[[:space:]]*ssid="\([^"]*\)".*/\1/p' | head -n1 || true)"
     if [[ -n "${ssid}" ]]; then
       printf "%s\n" "${ssid}"
       return
     fi
   fi
 
-  ssid="$(grep -h '^ssid=' /etc/NetworkManager/system-connections/*.nmconnection 2>/dev/null | sed -n 's/^ssid=//p' | head -n1 || true)"
-  if [[ -n "${ssid}" ]]; then
-    printf "%s\n" "${ssid}"
-    return
+  for conf_file in /etc/NetworkManager/system-connections/*.nmconnection; do
+    [[ -f "${conf_file}" ]] || continue
+    # nmconnection files are typically root-only (0600); use sudo to read them if needed.
+    ssid="$(run_sudo_if_needed cat "${conf_file}" 2>/dev/null | sed -n 's/^ssid=//p' | head -n1 || true)"
+    if [[ -n "${ssid}" ]]; then
+      printf "%s\n" "${ssid}"
+      return
+    fi
+  done
+
+  # netplan-managed connections have no on-disk .nmconnection file; query NetworkManager directly.
+  if command -v nmcli >/dev/null 2>&1; then
+    local conn_name
+    conn_name="$(nmcli -t -f NAME,TYPE connection show 2>/dev/null | awk -F: '$2=="802-11-wireless"{print $1; exit}')"
+    if [[ -n "${conn_name}" ]]; then
+      ssid="$(nmcli -g 802-11-wireless.ssid connection show "${conn_name}" 2>/dev/null || true)"
+      if [[ -n "${ssid}" ]]; then
+        printf "%s\n" "${ssid}"
+        return
+      fi
+    fi
   fi
 
   printf "%s\n" ""

@@ -215,6 +215,19 @@ detect_configured_ssid() {
     return
   fi
 
+  # netplan-managed connections have no on-disk .nmconnection file; query NetworkManager directly.
+  if command -v nmcli >/dev/null 2>&1; then
+    local conn_name
+    conn_name="$(nmcli -t -f NAME,TYPE connection show 2>/dev/null | awk -F: '$2=="802-11-wireless"{print $1; exit}')"
+    if [[ -n "${conn_name}" ]]; then
+      ssid="$(nmcli -g 802-11-wireless.ssid connection show "${conn_name}" 2>/dev/null || true)"
+      if [[ -n "${ssid}" ]]; then
+        printf "%s\n" "${ssid}"
+        return
+      fi
+    fi
+  fi
+
   printf "%s\n" ""
 }
 

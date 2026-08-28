@@ -144,7 +144,7 @@ wait-for-ssh:
 	exit 1
 
 remote-diagnose:
-	ssh -o ConnectTimeout=$(SSH_CONNECT_TIMEOUT) $(PI_USER)@$(PI_HOST) "chmod +x $(PI_PATH)/diagnose.sh && $(PI_PATH)/diagnose.sh"
+	ssh -tt -o ConnectTimeout=$(SSH_CONNECT_TIMEOUT) $(PI_USER)@$(PI_HOST) "chmod +x $(PI_PATH)/diagnose.sh && $(PI_PATH)/diagnose.sh"
 
 deploy: wait-for-ssh copy-scripts remote-install wait-for-ssh remote-diagnose
 
