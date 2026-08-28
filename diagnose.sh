@@ -37,7 +37,8 @@ check_systemd_unit_state() {
   state_label="$2"
 
   if has_running_systemd; then
-    if run_sudo_if_needed systemctl "${subcommand}" --quiet "${SERVICE_NAME}"; then
+    # systemctl is-active/is-enabled are unprivileged reads; no sudo needed.
+    if systemctl "${subcommand}" --quiet "${SERVICE_NAME}"; then
       pass "${SERVICE_NAME} is ${state_label}"
     else
       warn "${SERVICE_NAME} is not ${state_label}"
