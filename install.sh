@@ -43,12 +43,12 @@ apt_update_upgrade() {
   apt-get update
 
   log "Upgrading installed packages"
-  DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
+  DEBIAN_FRONTEND=noninteractive APT_LISTCHANGES_FRONTEND=none apt-get upgrade -y
 }
 
 install_core_packages() {
   log "Installing core packages"
-  DEBIAN_FRONTEND=noninteractive apt-get install -y "${CORE_PACKAGES[@]}"
+  DEBIAN_FRONTEND=noninteractive APT_LISTCHANGES_FRONTEND=none apt-get install -y "${CORE_PACKAGES[@]}"
 }
 
 get_boot_config_file() {
