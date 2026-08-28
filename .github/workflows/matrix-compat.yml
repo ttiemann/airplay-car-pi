@@ -18,10 +18,10 @@ jobs:
       matrix:
         include:
           - profile: pi-zero-w-bookworm-armv6
-            base_image: debian:bookworm
+            base_image: arm32v5/debian:bookworm
             platform: linux/arm/v5
           - profile: pi-zero-w-trixie-armv6
-            base_image: debian:trixie
+            base_image: arm32v5/debian:trixie
             platform: linux/arm/v5
           - profile: pi-zero2w-bookworm-arm64
             base_image: debian:bookworm
