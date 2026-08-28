@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 # Source installer functions without executing main.
-# shellcheck source=../../install.sh
+# shellcheck disable=SC1091
 source "${REPO_ROOT}/install.sh"
 
 TESTS_RUN=0
@@ -103,6 +103,7 @@ test_generate_shairport_config_uses_software_mixer_when_no_control_available() {
   # shellcheck disable=SC2034
   AIRPLAY_MIXER_CONTROL_NAME=""
 
+  # shellcheck disable=SC2329
   amixer() { return 127; }
 
   generate_shairport_config >/dev/null
