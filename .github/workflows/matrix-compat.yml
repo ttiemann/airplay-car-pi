@@ -19,10 +19,10 @@ jobs:
         include:
           - profile: pi-zero-w-bookworm-armv6
             base_image: debian:bookworm
-            platform: linux/arm/v6
+            platform: linux/arm/v5
           - profile: pi-zero-w-trixie-armv6
             base_image: debian:trixie
-            platform: linux/arm/v6
+            platform: linux/arm/v5
           - profile: pi-zero2w-bookworm-arm64
             base_image: debian:bookworm
             platform: linux/arm64
