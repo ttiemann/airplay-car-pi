@@ -2,7 +2,8 @@
 
 AirPlay receiver for car radios using Raspberry Pi boards and HiFiBerry DAC+ Zero.
 This project is focused on quick boot, stable playback, and headless operation for automotive use.
-It supports Wi-Fi-capable Raspberry Pi Zero boards with performance trade-offs on older models.
+The project supports Wi-Fi-capable Raspberry Pi Zero boards with the appropriate Raspberry Pi OS
+architecture for the hardware.
 
 ## Features
 
@@ -18,7 +19,7 @@ It supports Wi-Fi-capable Raspberry Pi Zero boards with performance trade-offs o
 
 ## Hardware
 
-- Raspberry Pi Zero family board with built-in Wi-Fi
+- Raspberry Pi Zero board with built-in Wi-Fi
 - HiFiBerry DAC+ Zero
 - microSD card (16 GB or larger recommended)
 - Stable 5V power supply suitable for vehicle use
@@ -26,12 +27,13 @@ It supports Wi-Fi-capable Raspberry Pi Zero boards with performance trade-offs o
 
 ## Compatibility
 
-- Raspberry Pi Zero boards with built-in Wi-Fi are supported.
+- Raspberry Pi Zero boards are supported with a compatible Raspberry Pi OS image.
+- Use the 64-bit image when supported by the board; use a 32-bit/armv6-compatible image for older boards.
 - Performance depends on board generation, power stability, and background load.
 
 ## Software Requirements
 
-- Raspberry Pi OS Lite (recommended)
+- Raspberry Pi OS Lite with an architecture compatible with your Raspberry Pi Zero board
 - Internet connection for package installation
 - SSH access (optional but recommended)
 
