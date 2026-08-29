@@ -112,16 +112,15 @@ Supported environment variables:
 - `AIRPLAY_DEVICE_NAME` (default: `AirPlay Car Pi`)
 - `AIRPLAY_BACKEND` (default: `alsa`)
 - `AIRPLAY_MIXER_CONTROL_NAME` (optional override; auto-detected if unset)
-- `AIRPLAY_CAR_SUFFIX` (default: " [CAR]"; appended to AirPlay name when away from home)
 - `CAR_AP_SSID` (default: `AirPlay-Car-Pi`; Wi-Fi network name of the car hotspot)
 - `CAR_AP_PASSWORD` (default: `airplaycarpi`; **change this** to a strong passphrase)
 - `CAR_AP_IFACE` (default: `wlan0`)
 - `CAR_AP_CHANNEL` (default: `6`)
 - `CAR_AP_HOME_PROBE_SEC` (default: `180`; how often car mode drops the hotspot to look for home Wi-Fi)
 
-The installer also sets up a systemd timer on the Pi that checks Wi-Fi mode automatically every 30 seconds. It auto-detects your configured SSID from Raspberry Pi network configuration (including Raspberry Pi Imager setup). In away/car mode it appends `AIRPLAY_CAR_SUFFIX` to the advertised AirPlay name, so you can detect mode directly from your phone without SSH access.
+The installer also sets up a systemd timer on the Pi that checks Wi-Fi mode automatically every 30 seconds. It auto-detects your configured SSID from Raspberry Pi network configuration (including Raspberry Pi Imager setup). Set `AIRPLAY_DEVICE_NAME` to choose the receiver name shown in the AirPlay output selector.
 
-Example install with automatic mode labeling:
+Example install:
 
 ```bash
 sudo AIRPLAY_DEVICE_NAME="Car AirPlay" CAR_AP_SSID="MyCar" CAR_AP_PASSWORD="mysecurepassword" ./install.sh
@@ -133,7 +132,6 @@ When the Pi is away from home Wi-Fi, a mode-check timer (every 30 s) automatical
 
 1. Releases `wlan0` from the home profile and activates a dedicated `airplay-car-hotspot` NetworkManager profile (WPA2 access point, `ipv4.method shared`)
 2. NetworkManager handles `hostapd` and DHCP internally via `dnsmasq-base` — no manual service setup needed
-3. Renames the AirPlay receiver to `<name> [CAR]` so you can see mode from any Apple device
 
 Activation is retried on every tick until it succeeds, and any `nmcli` failure is logged to the journal.
 
@@ -141,7 +139,7 @@ Activation is retried on every tick until it succeeds, and any `nmcli` failure i
 
 A radio in access point mode cannot scan for other networks, so the Pi cannot passively notice that home Wi-Fi is back. Instead, every `CAR_AP_HOME_PROBE_SEC` (default 180 s) it briefly drops the hotspot, tries to activate the home profile, and restores the hotspot if that fails.
 
-The probe is **skipped entirely while a client is associated** with the hotspot, so an active AirPlay stream in the car is never interrupted. Probing resumes once the last client leaves — typically when you arrive home and your phone rejoins the house network. The switch back takes a few seconds, after which the `[CAR]` suffix disappears.
+The probe is **skipped entirely while a client is associated** with the hotspot, so an active AirPlay stream in the car is never interrupted. Probing resumes once the last client leaves — typically when you arrive home and your phone rejoins the house network. The switch back takes a few seconds.
 
 Connect to the hotspot from your iPhone/Mac:
 
@@ -151,7 +149,7 @@ Connect to the hotspot from your iPhone/Mac:
 | Password | `airplaycarpi` (or your `CAR_AP_PASSWORD`) |
 | Pi IP    | `10.42.0.1`                                |
 
-Then open the AirPlay output selector and choose your receiver — it will show the `[CAR]` suffix.
+Then open the AirPlay output selector and choose your configured receiver name.
 
 ## Usage
 
@@ -178,7 +176,7 @@ To classify current network mode in diagnostics:
 ```
 
 - `CONFIGURED_SSID`: connected to your configured SSID — client mode, no hotspot
-- `AWAY`: configured SSID not found — hotspot active, AirPlay name has `[CAR]` suffix
+- `AWAY`: configured SSID not found — hotspot active
 
 The mode detector logs every decision under the `airplay-car-pi-mode` syslog tag:
 

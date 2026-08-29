@@ -88,6 +88,22 @@ test_generate_shairport_config_uses_selected_values() {
   assert_not_contains "$config_file" 'latencies = {'
 }
 
+test_mode_detector_keeps_airplay_name_fixed() {
+  local tmp_dir detector_file
+  tmp_dir="$(mktemp -d)"
+  detector_file="${tmp_dir}/airplay-car-pi-mode-check"
+
+  AIRPLAY_MODE_ENV_FILE="${tmp_dir}/airplay-car-pi-mode" \
+    AIRPLAY_MODE_CHECK_SCRIPT="$detector_file" \
+    AIRPLAY_MODE_SERVICE_FILE="${tmp_dir}/airplay-car-pi-mode.service" \
+    AIRPLAY_MODE_TIMER_FILE="${tmp_dir}/airplay-car-pi-mode.timer" \
+    install_mode_detector_files >/dev/null
+
+  assert_not_contains "$detector_file" 'AIRPLAY_CAR_SUFFIX'
+  assert_not_contains "$detector_file" 'shairport-sync.conf'
+  assert_not_contains "$detector_file" 'systemctl restart shairport-sync'
+}
+
 test_generate_shairport_config_uses_software_mixer_when_no_control_available() {
   local tmp_dir config_file
   tmp_dir="$(mktemp -d)"
@@ -158,6 +174,7 @@ EOF
 
 main() {
   run_test test_generate_shairport_config_uses_selected_values
+  run_test test_mode_detector_keeps_airplay_name_fixed
   run_test test_generate_shairport_config_uses_software_mixer_when_no_control_available
   run_test test_get_boot_config_file_prefers_primary_path
   run_test test_configure_hifiberry_dac_is_idempotent

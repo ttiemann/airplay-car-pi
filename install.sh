@@ -17,7 +17,6 @@ HIFIBERRY_OVERLAY="dtoverlay=hifiberry-dac"
 AIRPLAY_DEVICE_NAME="${AIRPLAY_DEVICE_NAME:-AirPlay Car Pi}"
 AIRPLAY_BACKEND="${AIRPLAY_BACKEND:-alsa}"
 AIRPLAY_MIXER_CONTROL_NAME="${AIRPLAY_MIXER_CONTROL_NAME:-}"
-AIRPLAY_CAR_SUFFIX="${AIRPLAY_CAR_SUFFIX:- [CAR]}"
 
 CAR_AP_SSID="${CAR_AP_SSID:-AirPlay-Car-Pi}"
 CAR_AP_PASSWORD="${CAR_AP_PASSWORD:-airplaycarpi}"
@@ -180,7 +179,6 @@ install_mode_detector_files() {
 
   cat >"${AIRPLAY_MODE_ENV_FILE}" <<EOF
 AIRPLAY_DEVICE_NAME="${AIRPLAY_DEVICE_NAME}"
-AIRPLAY_CAR_SUFFIX="${AIRPLAY_CAR_SUFFIX}"
 CAR_AP_SSID="${CAR_AP_SSID}"
 CAR_AP_PASSWORD="${CAR_AP_PASSWORD}"
 CAR_AP_IFACE="${CAR_AP_IFACE}"
@@ -193,7 +191,6 @@ EOF
 set -euo pipefail
 
 MODE_ENV_FILE="/etc/default/airplay-car-pi-mode"
-SHAIRPORT_CONFIG_FILE="/etc/shairport-sync.conf"
 STATE_DIR="/run/airplay-car-pi"
 STATE_FILE="${STATE_DIR}/network-mode"
 PROBE_STAMP_FILE="${STATE_DIR}/last-home-probe"
@@ -207,8 +204,6 @@ if [[ -f "${MODE_ENV_FILE}" ]]; then
   source "${MODE_ENV_FILE}"
 fi
 
-device_name="${AIRPLAY_DEVICE_NAME:-AirPlay Car Pi}"
-car_suffix="${AIRPLAY_CAR_SUFFIX:- [CAR]}"
 ap_iface="${CAR_AP_IFACE:-wlan0}"
 ap_ssid="${CAR_AP_SSID:-AirPlay-Car-Pi}"
 ap_password="${CAR_AP_PASSWORD:-airplaycarpi}"
@@ -464,29 +459,10 @@ else
   rm -f "${PROBE_STAMP_FILE}"
 fi
 
-target_name="${device_name}"
-if [[ "${mode}" == "AWAY" ]]; then
-  target_name="${device_name}${car_suffix}"
-fi
-
-if [[ -f "${SHAIRPORT_CONFIG_FILE}" ]]; then
-  current_name="$(sed -n 's/^[[:space:]]*name = "\([^"]*\)";.*/\1/p' "${SHAIRPORT_CONFIG_FILE}" | head -n1 || true)"
-
-  if [[ "${current_name}" != "${target_name}" ]]; then
-    escaped_target_name="${target_name//\\/\\\\}"
-    escaped_target_name="${escaped_target_name//\//\\/}"
-    escaped_target_name="${escaped_target_name//&/\\&}"
-    sed -i '0,/^[[:space:]]*name = ".*";/s//  name = "'"${escaped_target_name}"'";/' "${SHAIRPORT_CONFIG_FILE}"
-    if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
-      systemctl restart shairport-sync || true
-    fi
-  fi
-fi
-
 mkdir -p "${STATE_DIR}"
 printf "%s\n" "${mode}" >"${STATE_FILE}"
 
-log_msg "mode=${mode} previous=${previous_mode:-none} ssid=${current_ssid:-none} hotspot=$(hotspot_is_active && echo yes || echo no) name=${target_name}"
+log_msg "mode=${mode} previous=${previous_mode:-none} ssid=${current_ssid:-none} hotspot=$(hotspot_is_active && echo yes || echo no)"
 EOF
 
   chmod +x "${AIRPLAY_MODE_CHECK_SCRIPT}"
