@@ -28,6 +28,8 @@ AIRPLAY_MODE_ENV_FILE="/etc/default/airplay-car-pi-mode"
 AIRPLAY_MODE_CHECK_SCRIPT="/usr/local/bin/airplay-car-pi-mode-check"
 AIRPLAY_MODE_SERVICE_FILE="/etc/systemd/system/airplay-car-pi-mode.service"
 AIRPLAY_MODE_TIMER_FILE="/etc/systemd/system/airplay-car-pi-mode.timer"
+AIRPLAY_MODE_EVENTS_SCRIPT="/usr/local/bin/airplay-car-pi-mode-events"
+AIRPLAY_MODE_EVENTS_SERVICE_FILE="/etc/systemd/system/airplay-car-pi-mode-events.service"
 
 log() {
   printf "\n[%s] %s\n" "$(date +"%Y-%m-%d %H:%M:%S")" "$1"
@@ -493,6 +495,62 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 EOF
+
+  cat >"${AIRPLAY_MODE_EVENTS_SCRIPT}" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+MODE_ENV_FILE="/etc/default/airplay-car-pi-mode"
+
+# nmcli, iw and systemctl live in /usr/sbin, which is missing from some inherited environments
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+if [[ -f "${MODE_ENV_FILE}" ]]; then
+  # shellcheck disable=SC1090
+  source "${MODE_ENV_FILE}"
+fi
+
+ap_iface="${CAR_AP_IFACE:-wlan0}"
+
+log_msg() {
+  if command -v logger >/dev/null 2>&1; then
+    logger -t airplay-car-pi-mode-events "$*" || true
+  fi
+}
+
+log_msg "listening for ${ap_iface} station disconnect events"
+
+# iw event streams nl80211 netlink notifications (no polling): react the
+# instant the last phone leaves the hotspot instead of waiting for the
+# next timer tick. Detecting the home SSID itself still needs the
+# periodic probe below, since the radio can't scan while acting as an AP.
+iw event | while read -r line; do
+  case "${line}" in
+    *"${ap_iface}"*"del station"*)
+      log_msg "station left ${ap_iface}, triggering immediate mode check"
+      systemctl start airplay-car-pi-mode.service || true
+      ;;
+  esac
+done
+EOF
+
+  chmod +x "${AIRPLAY_MODE_EVENTS_SCRIPT}"
+
+  cat >"${AIRPLAY_MODE_EVENTS_SERVICE_FILE}" <<EOF
+[Unit]
+Description=AirPlay Car Pi hotspot client disconnect watcher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=${AIRPLAY_MODE_EVENTS_SCRIPT}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
 }
 
 configure_mode_detector_service() {
@@ -502,6 +560,7 @@ configure_mode_detector_service() {
     nmcli connection delete Hotspot >/dev/null 2>&1 || true
     systemctl daemon-reload
     systemctl enable --now airplay-car-pi-mode.timer
+    systemctl enable --now airplay-car-pi-mode-events.service
     systemctl start airplay-car-pi-mode.service
   else
     log "systemd not available, skipping mode detector timer setup"
