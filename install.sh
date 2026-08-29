@@ -6,6 +6,8 @@ set -euo pipefail
 CORE_PACKAGES=(
   alsa-utils
   avahi-daemon
+  dnsmasq-base
+  iw
   network-manager
   shairport-sync
 )
@@ -21,6 +23,7 @@ CAR_AP_SSID="${CAR_AP_SSID:-AirPlay-Car-Pi}"
 CAR_AP_PASSWORD="${CAR_AP_PASSWORD:-airplaycarpi}"
 CAR_AP_IFACE="${CAR_AP_IFACE:-wlan0}"
 CAR_AP_CHANNEL="${CAR_AP_CHANNEL:-6}"
+CAR_AP_HOME_PROBE_SEC="${CAR_AP_HOME_PROBE_SEC:-180}"
 
 AIRPLAY_MODE_ENV_FILE="/etc/default/airplay-car-pi-mode"
 AIRPLAY_MODE_CHECK_SCRIPT="/usr/local/bin/airplay-car-pi-mode-check"
@@ -182,6 +185,7 @@ CAR_AP_SSID="${CAR_AP_SSID}"
 CAR_AP_PASSWORD="${CAR_AP_PASSWORD}"
 CAR_AP_IFACE="${CAR_AP_IFACE}"
 CAR_AP_CHANNEL="${CAR_AP_CHANNEL}"
+CAR_AP_HOME_PROBE_SEC="${CAR_AP_HOME_PROBE_SEC}"
 EOF
 
   cat >"${AIRPLAY_MODE_CHECK_SCRIPT}" <<'EOF'
@@ -192,14 +196,38 @@ MODE_ENV_FILE="/etc/default/airplay-car-pi-mode"
 SHAIRPORT_CONFIG_FILE="/etc/shairport-sync.conf"
 STATE_DIR="/run/airplay-car-pi"
 STATE_FILE="${STATE_DIR}/network-mode"
+PROBE_STAMP_FILE="${STATE_DIR}/last-home-probe"
+HOTSPOT_CON_NAME="airplay-car-hotspot"
+
+# nmcli and iw live in /usr/sbin, which is missing from some inherited environments
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 if [[ -f "${MODE_ENV_FILE}" ]]; then
   # shellcheck disable=SC1090
   source "${MODE_ENV_FILE}"
 fi
 
+device_name="${AIRPLAY_DEVICE_NAME:-AirPlay Car Pi}"
+car_suffix="${AIRPLAY_CAR_SUFFIX:- [CAR]}"
+ap_iface="${CAR_AP_IFACE:-wlan0}"
+ap_ssid="${CAR_AP_SSID:-AirPlay-Car-Pi}"
+ap_password="${CAR_AP_PASSWORD:-airplaycarpi}"
+ap_channel="${CAR_AP_CHANNEL:-6}"
+home_probe_sec="${CAR_AP_HOME_PROBE_SEC:-180}"
+
+log_msg() {
+  if command -v logger >/dev/null 2>&1; then
+    logger -t airplay-car-pi-mode "$*" || true
+  fi
+}
+
+home_connection_name() {
+  nmcli -t -e no -f NAME,TYPE connection show 2>/dev/null |
+    awk -F: -v skip="${HOTSPOT_CON_NAME}" '$2=="802-11-wireless" && $1!=skip {print $1; exit}'
+}
+
 detect_configured_ssid() {
-  local ssid
+  local ssid file conn_name
 
   if [[ -f /etc/wpa_supplicant/wpa_supplicant.conf ]]; then
     ssid="$(sed -n 's/^[[:space:]]*ssid="\([^"]*\)".*/\1/p' /etc/wpa_supplicant/wpa_supplicant.conf | head -n1 || true)"
@@ -209,16 +237,24 @@ detect_configured_ssid() {
     fi
   fi
 
-  ssid="$(grep -h '^ssid=' /etc/NetworkManager/system-connections/*.nmconnection 2>/dev/null | sed -n 's/^ssid=//p' | head -n1 || true)"
-  if [[ -n "${ssid}" ]]; then
-    printf "%s\n" "${ssid}"
-    return
-  fi
+  for file in /etc/NetworkManager/system-connections/*.nmconnection; do
+    if [[ ! -f "${file}" ]]; then
+      continue
+    fi
+    # never mistake our own access-point profile for the home network
+    if grep -q '^mode=ap' "${file}"; then
+      continue
+    fi
+    ssid="$(sed -n 's/^ssid=//p' "${file}" | head -n1 || true)"
+    if [[ -n "${ssid}" ]]; then
+      printf "%s\n" "${ssid}"
+      return
+    fi
+  done
 
   # netplan-managed connections have no on-disk .nmconnection file; query NetworkManager directly.
   if command -v nmcli >/dev/null 2>&1; then
-    local conn_name
-    conn_name="$(nmcli -t -f NAME,TYPE connection show 2>/dev/null | awk -F: '$2=="802-11-wireless"{print $1; exit}')"
+    conn_name="$(home_connection_name)"
     if [[ -n "${conn_name}" ]]; then
       ssid="$(nmcli -g 802-11-wireless.ssid connection show "${conn_name}" 2>/dev/null || true)"
       if [[ -n "${ssid}" ]]; then
@@ -232,35 +268,149 @@ detect_configured_ssid() {
 }
 
 get_current_ssid() {
-  nmcli -t -f active,ssid dev wifi 2>/dev/null | awk -F: '/^yes/{print $2; exit}' || true
+  nmcli -t -e no -f active,ssid dev wifi 2>/dev/null | awk -F: '/^yes/{print $2; exit}' || true
+}
+
+hotspot_is_active() {
+  nmcli -t -e no -f NAME connection show --active 2>/dev/null | grep -Fxq "${HOTSPOT_CON_NAME}"
+}
+
+hotspot_has_clients() {
+  local leases
+
+  if command -v iw >/dev/null 2>&1; then
+    if iw dev "${ap_iface}" station dump 2>/dev/null | grep -q '^Station'; then
+      return 0
+    fi
+    return 1
+  fi
+
+  # no iw available: fall back to NetworkManager's shared-mode DHCP leases
+  for leases in /var/lib/NetworkManager/dnsmasq-*.leases; do
+    if [[ -s "${leases}" ]]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+ensure_hotspot_profile() {
+  local out rc
+
+  rc=0
+  if ! nmcli -t -e no -f NAME connection show 2>/dev/null | grep -Fxq "${HOTSPOT_CON_NAME}"; then
+    out="$(nmcli connection add type wifi ifname "${ap_iface}" con-name "${HOTSPOT_CON_NAME}" autoconnect no ssid "${ap_ssid}" 2>&1)" || rc=$?
+    if [[ "${rc}" -ne 0 ]]; then
+      log_msg "hotspot profile create failed (rc=${rc}): ${out}"
+      return 1
+    fi
+  fi
+
+  rc=0
+  out="$(nmcli connection modify "${HOTSPOT_CON_NAME}" \
+    connection.interface-name "${ap_iface}" \
+    connection.autoconnect no \
+    802-11-wireless.mode ap \
+    802-11-wireless.band bg \
+    802-11-wireless.channel "${ap_channel}" \
+    802-11-wireless.ssid "${ap_ssid}" \
+    802-11-wireless-security.key-mgmt wpa-psk \
+    802-11-wireless-security.proto rsn \
+    802-11-wireless-security.pairwise ccmp \
+    802-11-wireless-security.group ccmp \
+    802-11-wireless-security.pmf disable \
+    802-11-wireless-security.psk "${ap_password}" \
+    ipv4.method shared \
+    ipv6.method ignore 2>&1)" || rc=$?
+  if [[ "${rc}" -ne 0 ]]; then
+    log_msg "hotspot profile configure failed (rc=${rc}): ${out}"
+    return 1
+  fi
+
+  return 0
+}
+
+connect_home() {
+  local out rc home_con
+
+  home_con="$(home_connection_name)"
+  if [[ -z "${home_con}" ]]; then
+    log_msg "no home Wi-Fi profile found"
+    return 1
+  fi
+
+  # never use `nmcli device connect`: it reactivates the most recently used
+  # profile, which is the hotspot itself, and still reports success
+  rc=0
+  out="$(nmcli -w 30 connection up "${home_con}" ifname "${ap_iface}" 2>&1)" || rc=$?
+  if [[ "${rc}" -ne 0 ]]; then
+    log_msg "home reconnect failed (rc=${rc}): ${out}"
+    return 1
+  fi
+
+  return 0
 }
 
 start_hotspot() {
-  local ap_iface ap_ssid ap_password ap_channel
-  ap_iface="${CAR_AP_IFACE:-wlan0}"
-  ap_ssid="${CAR_AP_SSID:-AirPlay-Car-Pi}"
-  ap_password="${CAR_AP_PASSWORD:-airplaycarpi}"
-  ap_channel="${CAR_AP_CHANNEL:-6}"
+  local out rc
 
-  nmcli device wifi hotspot \
-    ifname "${ap_iface}" \
-    ssid "${ap_ssid}" \
-    password "${ap_password}" \
-    channel "${ap_channel}" 2>/dev/null || true
+  if ! ensure_hotspot_profile; then
+    return 1
+  fi
+
+  # release wlan0 from the home profile, otherwise NetworkManager keeps
+  # auto-retrying the missing SSID and refuses to hand the radio to AP mode
+  nmcli device disconnect "${ap_iface}" >/dev/null 2>&1 || true
+
+  rc=0
+  out="$(nmcli connection up "${HOTSPOT_CON_NAME}" ifname "${ap_iface}" 2>&1)" || rc=$?
+  if [[ "${rc}" -ne 0 ]]; then
+    log_msg "hotspot activation failed (rc=${rc}): ${out}"
+    # give the radio back so the Pi can still rejoin home Wi-Fi
+    connect_home || true
+    return 1
+  fi
+
+  mkdir -p "${STATE_DIR}"
+  printf "%s\n" "$(date +%s)" >"${PROBE_STAMP_FILE}"
+  log_msg "hotspot up ssid=${ap_ssid} iface=${ap_iface} channel=${ap_channel}"
+  return 0
 }
 
 stop_hotspot() {
-  local ap_iface
-  ap_iface="${CAR_AP_IFACE:-wlan0}"
+  local attempt
 
-  nmcli connection delete Hotspot 2>/dev/null || true
-  nmcli device connect "${ap_iface}" 2>/dev/null || true
+  nmcli connection down "${HOTSPOT_CON_NAME}" >/dev/null 2>&1 || true
+
+  # nmcli returns before the radio actually leaves AP mode; reconnecting too
+  # early fails and would strand the Pi with neither hotspot nor home Wi-Fi
+  for attempt in 1 2 3 4 5; do
+    if ! hotspot_is_active; then
+      break
+    fi
+    sleep 1
+  done
+
+  connect_home
 }
 
-device_name="${AIRPLAY_DEVICE_NAME:-AirPlay Car Pi}"
-car_suffix="${AIRPLAY_CAR_SUFFIX:- [CAR]}"
-current_ssid=""
+wait_for_home_ssid() {
+  local waited
+
+  # activation already blocked above; this only covers the DHCP/settle gap
+  for ((waited = 0; waited < 10; waited += 2)); do
+    if [[ "$(get_current_ssid)" == "${home_wifi_ssid}" ]]; then
+      return 0
+    fi
+    sleep 2
+  done
+
+  return 1
+}
+
 home_wifi_ssid="$(detect_configured_ssid)"
+current_ssid=""
 mode="AWAY"
 
 previous_mode=""
@@ -268,13 +418,50 @@ if [[ -f "${STATE_FILE}" ]]; then
   previous_mode="$(cat "${STATE_FILE}" 2>/dev/null || true)"
 fi
 
-if systemctl is-active --quiet NetworkManager 2>/dev/null && nmcli -t -f NAME connection show --active 2>/dev/null | grep -qi hotspot; then
-  mode="AWAY"
+if hotspot_is_active; then
+  now="$(date +%s)"
+  last_probe=0
+  if [[ -f "${PROBE_STAMP_FILE}" ]]; then
+    last_probe="$(cat "${PROBE_STAMP_FILE}" 2>/dev/null || echo 0)"
+  fi
+
+  # in AP mode the radio cannot scan, so drop the hotspot periodically to
+  # check whether the home network is reachable again
+  if [[ -n "${home_wifi_ssid}" && $((now - last_probe)) -ge "${home_probe_sec}" ]]; then
+    if hotspot_has_clients; then
+      # a phone is attached (probably streaming): never break its session
+      printf "%s\n" "${now}" >"${PROBE_STAMP_FILE}"
+      log_msg "home probe deferred: hotspot client connected"
+    else
+      printf "%s\n" "${now}" >"${PROBE_STAMP_FILE}"
+      log_msg "probing for home ssid=${home_wifi_ssid}"
+      stop_hotspot || true
+      if wait_for_home_ssid; then
+        current_ssid="${home_wifi_ssid}"
+        mode="CONFIGURED_SSID"
+      else
+        log_msg "home ssid not reachable, staying in car mode"
+      fi
+    fi
+  fi
 elif [[ -n "${home_wifi_ssid}" ]]; then
   current_ssid="$(get_current_ssid)"
   if [[ "${current_ssid}" == "${home_wifi_ssid}" ]]; then
     mode="CONFIGURED_SSID"
   fi
+fi
+
+if [[ "${mode}" == "AWAY" ]]; then
+  # retried on every tick: a failed activation must not leave the Pi
+  # stranded with neither home Wi-Fi nor a hotspot
+  if ! hotspot_is_active; then
+    start_hotspot || true
+  fi
+else
+  if hotspot_is_active; then
+    stop_hotspot
+  fi
+  rm -f "${PROBE_STAMP_FILE}"
 fi
 
 target_name="${device_name}"
@@ -296,18 +483,10 @@ if [[ -f "${SHAIRPORT_CONFIG_FILE}" ]]; then
   fi
 fi
 
-if [[ "${mode}" == "AWAY" && "${previous_mode}" != "AWAY" ]]; then
-  start_hotspot
-elif [[ "${mode}" == "CONFIGURED_SSID" && "${previous_mode}" == "AWAY" ]]; then
-  stop_hotspot
-fi
-
 mkdir -p "${STATE_DIR}"
 printf "%s\n" "${mode}" >"${STATE_FILE}"
 
-if command -v logger >/dev/null 2>&1; then
-  logger -t airplay-car-pi-mode "mode=${mode} ssid=${current_ssid:-none} name=${target_name}" || true
-fi
+log_msg "mode=${mode} previous=${previous_mode:-none} ssid=${current_ssid:-none} hotspot=$(hotspot_is_active && echo yes || echo no) name=${target_name}"
 EOF
 
   chmod +x "${AIRPLAY_MODE_CHECK_SCRIPT}"
@@ -320,6 +499,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
+TimeoutStartSec=120
 ExecStart=${AIRPLAY_MODE_CHECK_SCRIPT}
 EOF
 
@@ -342,6 +522,8 @@ EOF
 configure_mode_detector_service() {
   if has_running_systemd; then
     log "Enabling airplay-car-pi mode detector timer"
+    # older installs left a throwaway "Hotspot" profile behind
+    nmcli connection delete Hotspot >/dev/null 2>&1 || true
     systemctl daemon-reload
     systemctl enable --now airplay-car-pi-mode.timer
     systemctl start airplay-car-pi-mode.service

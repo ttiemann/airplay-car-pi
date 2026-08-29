@@ -101,7 +101,7 @@ Current bootstrap actions:
 
 - Runs `apt-get update`
 - Runs `apt-get upgrade -y`
-- Installs `alsa-utils`, `avahi-daemon`, `network-manager`, and `shairport-sync`
+- Installs `alsa-utils`, `avahi-daemon`, `dnsmasq-base`, `iw`, `network-manager`, and `shairport-sync`
 - Configures Raspberry Pi boot audio settings for HiFiBerry DAC+ Zero
 - Generates `/etc/shairport-sync.conf` (with timestamped backup if it exists)
 - Enables and restarts `shairport-sync` when systemd is available
@@ -117,6 +117,7 @@ Supported environment variables:
 - `CAR_AP_PASSWORD` (default: `airplaycarpi`; **change this** to a strong passphrase)
 - `CAR_AP_IFACE` (default: `wlan0`)
 - `CAR_AP_CHANNEL` (default: `6`)
+- `CAR_AP_HOME_PROBE_SEC` (default: `180`; how often car mode drops the hotspot to look for home Wi-Fi)
 
 The installer also sets up a systemd timer on the Pi that checks Wi-Fi mode automatically every 30 seconds. It auto-detects your configured SSID from Raspberry Pi network configuration (including Raspberry Pi Imager setup). In away/car mode it appends `AIRPLAY_CAR_SUFFIX` to the advertised AirPlay name, so you can detect mode directly from your phone without SSH access.
 
@@ -130,11 +131,17 @@ sudo AIRPLAY_DEVICE_NAME="Car AirPlay" CAR_AP_SSID="MyCar" CAR_AP_PASSWORD="myse
 
 When the Pi is away from home Wi-Fi, a mode-check timer (every 30 s) automatically:
 
-1. Calls `nmcli device wifi hotspot` to create a WPA2 access point on `wlan0`
-2. NetworkManager handles `hostapd` and DHCP internally — no extra packages needed
+1. Releases `wlan0` from the home profile and activates a dedicated `airplay-car-hotspot` NetworkManager profile (WPA2 access point, `ipv4.method shared`)
+2. NetworkManager handles `hostapd` and DHCP internally via `dnsmasq-base` — no manual service setup needed
 3. Renames the AirPlay receiver to `<name> [CAR]` so you can see mode from any Apple device
 
-When the Pi boots back on the home network, the hotspot is torn down and the Pi reconnects as a normal client.
+Activation is retried on every tick until it succeeds, and any `nmcli` failure is logged to the journal.
+
+### Returning To Home Wi-Fi
+
+A radio in access point mode cannot scan for other networks, so the Pi cannot passively notice that home Wi-Fi is back. Instead, every `CAR_AP_HOME_PROBE_SEC` (default 180 s) it briefly drops the hotspot, tries to activate the home profile, and restores the hotspot if that fails.
+
+The probe is **skipped entirely while a client is associated** with the hotspot, so an active AirPlay stream in the car is never interrupted. Probing resumes once the last client leaves — typically when you arrive home and your phone rejoins the house network. The switch back takes a few seconds, after which the `[CAR]` suffix disappears.
 
 Connect to the hotspot from your iPhone/Mac:
 
@@ -142,7 +149,7 @@ Connect to the hotspot from your iPhone/Mac:
 |----------|--------------------------------------------|
 | SSID     | `AirPlay-Car-Pi` (or your `CAR_AP_SSID`)   |
 | Password | `airplaycarpi` (or your `CAR_AP_PASSWORD`) |
-| Pi IP    | `192.168.99.1`                             |
+| Pi IP    | `10.42.0.1`                                |
 
 Then open the AirPlay output selector and choose your receiver — it will show the `[CAR]` suffix.
 
@@ -172,6 +179,14 @@ To classify current network mode in diagnostics:
 
 - `CONFIGURED_SSID`: connected to your configured SSID — client mode, no hotspot
 - `AWAY`: configured SSID not found — hotspot active, AirPlay name has `[CAR]` suffix
+
+The mode detector logs every decision under the `airplay-car-pi-mode` syslog tag:
+
+```bash
+sudo journalctl -t airplay-car-pi-mode -f
+```
+
+Raspberry Pi OS keeps journals in RAM only, so these logs are lost on reboot. Capture them live when reproducing an issue.
 
 If your service name differs, replace `shairport-sync` with the installed unit name.
 
@@ -369,6 +384,12 @@ Expected result:
   - Confirm onboard Wi-Fi is enabled and country is set.
   - Verify DHCP assigned an IP address.
   - Check link status before troubleshooting AirPlay service.
+
+- Pi stays in car mode after home Wi-Fi is back:
+  - Confirm no device is still associated with the hotspot; the probe is deferred while a client is connected.
+  - Wait up to `CAR_AP_HOME_PROBE_SEC` for the next probe.
+  - Check `sudo journalctl -t airplay-car-pi-mode` for `home reconnect failed` messages.
+  - To recover manually, join the hotspot and run `sudo nmcli connection up "<home profile>" ifname wlan0`.
 
 - No audio output:
   - Confirm wiring from DAC to car input.
