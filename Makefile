@@ -116,10 +116,10 @@ rollback-remote:
 	bash scripts/deploy/rollback_backup.sh $(SNAPSHOT_ID)
 
 remote-writable-root:
-	bash scripts/deploy/set_overlay_mode.sh writable
+	PI_USER=$(PI_USER) PI_HOST=$(PI_HOST) SSH_CONNECT_TIMEOUT=$(SSH_CONNECT_TIMEOUT) bash scripts/deploy/set_overlay_mode.sh writable
 
 remote-readonly-root:
-	bash scripts/deploy/set_overlay_mode.sh readonly
+	PI_USER=$(PI_USER) PI_HOST=$(PI_HOST) SSH_CONNECT_TIMEOUT=$(SSH_CONNECT_TIMEOUT) bash scripts/deploy/set_overlay_mode.sh readonly
 
 copy-scripts:
 	@for i in $$(seq 1 $(COPY_RETRIES)); do \
