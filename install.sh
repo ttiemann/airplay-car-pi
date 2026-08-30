@@ -416,28 +416,36 @@ if [[ -f "${STATE_FILE}" ]]; then
 fi
 
 if hotspot_is_active; then
-  now="$(date +%s)"
-  last_probe=0
-  if [[ -f "${PROBE_STAMP_FILE}" ]]; then
-    last_probe="$(cat "${PROBE_STAMP_FILE}" 2>/dev/null || echo 0)"
-  fi
+  current_ssid="$(get_current_ssid)"
+  if [[ -n "${home_wifi_ssid}" && "${current_ssid}" == "${home_wifi_ssid}" ]]; then
+    # The radio is already on the home network; there is no need to probe it
+    # again or drop the hotspot. This avoids pointless AP churn in steady-state.
+    mode="CONFIGURED_SSID"
+    log_msg "home ssid already active; skipping periodic probe"
+  else
+    now="$(date +%s)"
+    last_probe=0
+    if [[ -f "${PROBE_STAMP_FILE}" ]]; then
+      last_probe="$(cat "${PROBE_STAMP_FILE}" 2>/dev/null || echo 0)"
+    fi
 
-  # in AP mode the radio cannot scan, so drop the hotspot periodically to
-  # check whether the home network is reachable again
-  if [[ -n "${home_wifi_ssid}" && $((now - last_probe)) -ge "${home_probe_sec}" ]]; then
-    if hotspot_has_clients; then
-      # a phone is attached (probably streaming): never break its session
-      printf "%s\n" "${now}" >"${PROBE_STAMP_FILE}"
-      log_msg "home probe deferred: hotspot client connected"
-    else
-      printf "%s\n" "${now}" >"${PROBE_STAMP_FILE}"
-      log_msg "probing for home ssid=${home_wifi_ssid}"
-      stop_hotspot || true
-      if wait_for_home_ssid; then
-        current_ssid="${home_wifi_ssid}"
-        mode="CONFIGURED_SSID"
+    # in AP mode the radio cannot scan, so drop the hotspot periodically to
+    # check whether the home network is reachable again
+    if [[ -n "${home_wifi_ssid}" && $((now - last_probe)) -ge "${home_probe_sec}" ]]; then
+      if hotspot_has_clients; then
+        # a phone is attached (probably streaming): never break its session
+        printf "%s\n" "${now}" >"${PROBE_STAMP_FILE}"
+        log_msg "home probe deferred: hotspot client connected"
       else
-        log_msg "home ssid not reachable, staying in car mode"
+        printf "%s\n" "${now}" >"${PROBE_STAMP_FILE}"
+        log_msg "probing for home ssid=${home_wifi_ssid}"
+        stop_hotspot || true
+        if wait_for_home_ssid; then
+          current_ssid="${home_wifi_ssid}"
+          mode="CONFIGURED_SSID"
+        else
+          log_msg "home ssid not reachable, staying in car mode"
+        fi
       fi
     fi
   fi
@@ -445,6 +453,7 @@ elif [[ -n "${home_wifi_ssid}" ]]; then
   current_ssid="$(get_current_ssid)"
   if [[ "${current_ssid}" == "${home_wifi_ssid}" ]]; then
     mode="CONFIGURED_SSID"
+    log_msg "home ssid already active; periodic probe disabled"
   fi
 fi
 
