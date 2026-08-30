@@ -181,12 +181,42 @@ EOF
   assert_equals "$overlay_count" "1" "Overlay line should be present exactly once"
 }
 
+test_configure_boot_time_optimizations_is_idempotent() {
+  local tmp_dir boot_cfg cmdline parameter count
+  tmp_dir="$(mktemp -d)"
+  boot_cfg="${tmp_dir}/config.txt"
+  cmdline="${tmp_dir}/cmdline.txt"
+
+  BOOT_CONFIG_PRIMARY="$boot_cfg"
+  BOOT_CONFIG_LEGACY="${tmp_dir}/unused-legacy-config.txt"
+  BOOT_CMDLINE_PRIMARY="$cmdline"
+  BOOT_CMDLINE_LEGACY="${tmp_dir}/unused-legacy-cmdline.txt"
+  DISABLE_BLUETOOTH=1
+
+  printf '# test config\nhdmi_blanking=1\n' >"$boot_cfg"
+  printf 'console=serial0,115200 root=/dev/mmcblk0p2 rootwait\n' >"$cmdline"
+
+  configure_boot_time_optimizations >/dev/null
+  configure_boot_time_optimizations >/dev/null
+
+  for parameter in quiet fastboot loglevel=3 logo.nologo console=tty3 vt.global_cursor_default=0; do
+    assert_contains "$cmdline" "$parameter"
+    count="$(grep -Fow "$parameter" "$cmdline" | wc -l | tr -d ' ')"
+    assert_equals "$count" "1" "Kernel parameter '$parameter' should be present exactly once"
+  done
+
+  assert_equals "$(wc -l < "$cmdline" | tr -d ' ')" "1" "Kernel command line should remain one line"
+  assert_contains "$boot_cfg" 'hdmi_blanking=2'
+  assert_contains "$boot_cfg" 'dtoverlay=disable-bt'
+}
+
 main() {
   run_test test_generate_shairport_config_uses_selected_values
   run_test test_mode_detector_keeps_airplay_name_fixed
   run_test test_generate_shairport_config_uses_software_mixer_when_no_control_available
   run_test test_get_boot_config_file_prefers_primary_path
   run_test test_configure_hifiberry_dac_is_idempotent
+  run_test test_configure_boot_time_optimizations_is_idempotent
 
   printf "\nTests run: %d\n" "$TESTS_RUN"
 

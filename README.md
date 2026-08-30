@@ -12,6 +12,7 @@ architecture for the hardware.
 - Automated setup bootstrap via install script
 - Installs Shairport Sync and required audio/network packages
 - Configures Raspberry Pi boot settings for HiFiBerry DAC+ Zero when boot config is available
+- Applies quiet kernel boot options and HDMI blanking for quicker time-to-music
 - Generates `/etc/shairport-sync.conf` with configurable defaults
 - Enables and restarts `shairport-sync` automatically on systemd systems
 - Includes `diagnose.sh` for post-install service/audio/network checks
@@ -103,6 +104,7 @@ Current bootstrap actions:
 - Runs `apt-get upgrade -y`
 - Installs `alsa-utils`, `avahi-daemon`, `dnsmasq-base`, `iw`, `network-manager`, and `shairport-sync`
 - Configures Raspberry Pi boot audio settings for HiFiBerry DAC+ Zero
+- Adds `quiet fastboot loglevel=3 logo.nologo console=tty3 vt.global_cursor_default=0` to the Raspberry Pi kernel command line and sets `hdmi_blanking=2`
 - Generates `/etc/shairport-sync.conf` (with timestamped backup if it exists)
 - Enables and restarts `shairport-sync` when systemd is available
 - Installs a home-vs-car mode detector timer, a NetworkManager home Wi-Fi disconnect hook, and a Wi-Fi client disconnect watcher
@@ -117,6 +119,7 @@ Supported environment variables:
 - `CAR_AP_IFACE` (default: `wlan0`)
 - `CAR_AP_CHANNEL` (default: `6`)
 - `CAR_AP_HOME_PROBE_SEC` (default: `180`; how often car mode drops the hotspot to look for home Wi-Fi)
+- `DISABLE_BLUETOOTH` (default: `0`; set to `1` to add `dtoverlay=disable-bt` when Bluetooth is unused)
 
 The installer also sets up a generic network-mode systemd timer on the Pi that checks Wi-Fi mode automatically every 30 seconds. A NetworkManager dispatcher hook triggers an immediate check when the configured Wi-Fi interface disconnects from home, while the `wifi-station-watch` service triggers a check when a hotspot client disconnects. It auto-detects your configured SSID from Raspberry Pi network configuration (including Raspberry Pi Imager setup). Set `AIRPLAY_DEVICE_NAME` to choose the receiver name shown in the AirPlay output selector.
 

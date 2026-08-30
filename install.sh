@@ -28,6 +28,8 @@ CAR_AP_HOME_PROBE_SEC="${CAR_AP_HOME_PROBE_SEC:-180}"
 # root protects the SD card from corruption. Set to "0" to skip (e.g. for
 # development installs where the filesystem must stay writable).
 OVERLAYFS_ENABLE="${OVERLAYFS_ENABLE:-1}"
+DISABLE_BLUETOOTH="${DISABLE_BLUETOOTH:-0}"
+SKIP_SYSTEMD_SETUP="${SKIP_SYSTEMD_SETUP:-0}"
 
 NETWORK_MODE_ENV_FILE="/etc/default/network-mode-check"
 NETWORK_MODE_CHECK_SCRIPT="/usr/local/bin/network-mode-check"
@@ -71,6 +73,21 @@ get_boot_config_file() {
     printf "%s\n" "${primary_boot_config}"
   elif [[ -f "${legacy_boot_config}" ]]; then
     printf "%s\n" "${legacy_boot_config}"
+  else
+    printf "%s\n" ""
+  fi
+}
+
+get_boot_cmdline_file() {
+  local primary_boot_cmdline legacy_boot_cmdline
+
+  primary_boot_cmdline="${BOOT_CMDLINE_PRIMARY:-/boot/firmware/cmdline.txt}"
+  legacy_boot_cmdline="${BOOT_CMDLINE_LEGACY:-/boot/cmdline.txt}"
+
+  if [[ -f "${primary_boot_cmdline}" ]]; then
+    printf "%s\n" "${primary_boot_cmdline}"
+  elif [[ -f "${legacy_boot_cmdline}" ]]; then
+    printf "%s\n" "${legacy_boot_cmdline}"
   else
     printf "%s\n" ""
   fi
@@ -168,8 +185,57 @@ configure_hifiberry_dac() {
   fi
 }
 
+configure_boot_time_optimizations() {
+  local boot_config_file boot_cmdline_file cmdline_contents parameter
+  local -a kernel_parameters=(
+    quiet
+    fastboot
+    loglevel=3
+    logo.nologo
+    console=tty3
+    vt.global_cursor_default=0
+  )
+
+  boot_config_file="$(get_boot_config_file)"
+  boot_cmdline_file="$(get_boot_cmdline_file)"
+
+  if [[ -n "${boot_cmdline_file}" ]]; then
+    log "Configuring kernel boot options in ${boot_cmdline_file}"
+    cmdline_contents="$(tr '\n' ' ' < "${boot_cmdline_file}")"
+    for parameter in "${kernel_parameters[@]}"; do
+      if ! grep -Fqw "${parameter}" <<<"${cmdline_contents}"; then
+        cmdline_contents+=" ${parameter}"
+      fi
+    done
+    printf "%s\n" "${cmdline_contents}" > "${boot_cmdline_file}"
+  else
+    log "Raspberry Pi kernel command line not found, skipping kernel boot options"
+  fi
+
+  if [[ -z "${boot_config_file}" ]]; then
+    log "Raspberry Pi boot config not found, skipping HDMI and Bluetooth boot options"
+    return
+  fi
+
+  log "Configuring HDMI boot options in ${boot_config_file}"
+  if grep -Eq '^\s*hdmi_blanking=' "${boot_config_file}"; then
+    sed -i '' 's/^\s*hdmi_blanking=.*/hdmi_blanking=2/' "${boot_config_file}" 2>/dev/null || \
+      sed -i 's/^\s*hdmi_blanking=.*/hdmi_blanking=2/' "${boot_config_file}"
+  else
+    printf "\n%s\n" "hdmi_blanking=2" >> "${boot_config_file}"
+  fi
+
+  if [[ "${DISABLE_BLUETOOTH}" == "1" ]] && ! grep -Fxq 'dtoverlay=disable-bt' "${boot_config_file}"; then
+    log "Disabling unused Bluetooth hardware in ${boot_config_file}"
+    printf "%s\n" 'dtoverlay=disable-bt' >> "${boot_config_file}"
+  fi
+}
+
 has_running_systemd() {
-  command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]
+  [[ "${SKIP_SYSTEMD_SETUP}" != "1" ]] &&
+    command -v systemctl >/dev/null 2>&1 &&
+    [[ -d /run/systemd/system ]] &&
+    ! systemd-detect-virt --chroot --quiet
 }
 
 enable_read_only_overlay() {
@@ -642,6 +708,7 @@ main() {
   apt_update_upgrade
   install_core_packages
   configure_hifiberry_dac
+  configure_boot_time_optimizations
   generate_shairport_config
   configure_shairport_service
   install_mode_detector_files
