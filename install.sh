@@ -24,12 +24,12 @@ CAR_AP_IFACE="${CAR_AP_IFACE:-wlan0}"
 CAR_AP_CHANNEL="${CAR_AP_CHANNEL:-6}"
 CAR_AP_HOME_PROBE_SEC="${CAR_AP_HOME_PROBE_SEC:-180}"
 
-AIRPLAY_MODE_ENV_FILE="/etc/default/airplay-car-pi-mode"
-AIRPLAY_MODE_CHECK_SCRIPT="/usr/local/bin/airplay-car-pi-mode-check"
-AIRPLAY_MODE_SERVICE_FILE="/etc/systemd/system/airplay-car-pi-mode.service"
-AIRPLAY_MODE_TIMER_FILE="/etc/systemd/system/airplay-car-pi-mode.timer"
-AIRPLAY_MODE_EVENTS_SCRIPT="/usr/local/bin/airplay-car-pi-mode-events"
-AIRPLAY_MODE_EVENTS_SERVICE_FILE="/etc/systemd/system/airplay-car-pi-mode-events.service"
+NETWORK_MODE_ENV_FILE="/etc/default/network-mode-check"
+NETWORK_MODE_CHECK_SCRIPT="/usr/local/bin/network-mode-check"
+NETWORK_MODE_SERVICE_FILE="/etc/systemd/system/network-mode-check.service"
+NETWORK_MODE_TIMER_FILE="/etc/systemd/system/network-mode-check.timer"
+WIFI_STATION_WATCH_SCRIPT="/usr/local/bin/wifi-station-watch"
+WIFI_STATION_WATCH_SERVICE_FILE="/etc/systemd/system/wifi-station-watch.service"
 
 log() {
   printf "\n[%s] %s\n" "$(date +"%Y-%m-%d %H:%M:%S")" "$1"
@@ -179,7 +179,7 @@ configure_shairport_service() {
 install_mode_detector_files() {
   log "Installing automatic home/away mode detector"
 
-  cat >"${AIRPLAY_MODE_ENV_FILE}" <<EOF
+  cat >"${NETWORK_MODE_ENV_FILE}" <<EOF
 AIRPLAY_DEVICE_NAME="${AIRPLAY_DEVICE_NAME}"
 CAR_AP_SSID="${CAR_AP_SSID}"
 CAR_AP_PASSWORD="${CAR_AP_PASSWORD}"
@@ -188,11 +188,11 @@ CAR_AP_CHANNEL="${CAR_AP_CHANNEL}"
 CAR_AP_HOME_PROBE_SEC="${CAR_AP_HOME_PROBE_SEC}"
 EOF
 
-  cat >"${AIRPLAY_MODE_CHECK_SCRIPT}" <<'EOF'
+  cat >"${NETWORK_MODE_CHECK_SCRIPT}" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
-MODE_ENV_FILE="/etc/default/airplay-car-pi-mode"
+MODE_ENV_FILE="/etc/default/network-mode-check"
 STATE_DIR="/run/airplay-car-pi"
 STATE_FILE="${STATE_DIR}/network-mode"
 PROBE_STAMP_FILE="${STATE_DIR}/last-home-probe"
@@ -467,28 +467,28 @@ printf "%s\n" "${mode}" >"${STATE_FILE}"
 log_msg "mode=${mode} previous=${previous_mode:-none} ssid=${current_ssid:-none} hotspot=$(hotspot_is_active && echo yes || echo no)"
 EOF
 
-  chmod +x "${AIRPLAY_MODE_CHECK_SCRIPT}"
+  chmod +x "${NETWORK_MODE_CHECK_SCRIPT}"
 
-  cat >"${AIRPLAY_MODE_SERVICE_FILE}" <<EOF
+  cat >"${NETWORK_MODE_SERVICE_FILE}" <<EOF
 [Unit]
-Description=AirPlay Car Pi network mode detection
+Description=Network mode detection
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=oneshot
 TimeoutStartSec=120
-ExecStart=${AIRPLAY_MODE_CHECK_SCRIPT}
+ExecStart=${NETWORK_MODE_CHECK_SCRIPT}
 EOF
 
-  cat >"${AIRPLAY_MODE_TIMER_FILE}" <<EOF
+  cat >"${NETWORK_MODE_TIMER_FILE}" <<EOF
 [Unit]
-Description=Run AirPlay Car Pi network mode detection periodically
+Description=Run network mode detection periodically
 
 [Timer]
 OnBootSec=20s
 OnUnitActiveSec=30s
-Unit=airplay-car-pi-mode.service
+Unit=network-mode-check.service
 AccuracySec=5s
 Persistent=true
 
@@ -496,11 +496,11 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
-  cat >"${AIRPLAY_MODE_EVENTS_SCRIPT}" <<'EOF'
+  cat >"${WIFI_STATION_WATCH_SCRIPT}" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
-MODE_ENV_FILE="/etc/default/airplay-car-pi-mode"
+MODE_ENV_FILE="/etc/default/network-mode-check"
 
 # nmcli, iw and systemctl live in /usr/sbin, which is missing from some inherited environments
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
@@ -514,7 +514,7 @@ ap_iface="${CAR_AP_IFACE:-wlan0}"
 
 log_msg() {
   if command -v logger >/dev/null 2>&1; then
-    logger -t airplay-car-pi-mode-events "$*" || true
+    logger -t wifi-station-watch "$*" || true
   fi
 }
 
@@ -528,23 +528,23 @@ iw event | while read -r line; do
   case "${line}" in
     *"${ap_iface}"*"del station"*)
       log_msg "station left ${ap_iface}, triggering immediate mode check"
-      systemctl start airplay-car-pi-mode.service || true
+      systemctl start network-mode-check.service || true
       ;;
   esac
 done
 EOF
 
-  chmod +x "${AIRPLAY_MODE_EVENTS_SCRIPT}"
+  chmod +x "${WIFI_STATION_WATCH_SCRIPT}"
 
-  cat >"${AIRPLAY_MODE_EVENTS_SERVICE_FILE}" <<EOF
+  cat >"${WIFI_STATION_WATCH_SERVICE_FILE}" <<EOF
 [Unit]
-Description=AirPlay Car Pi hotspot client disconnect watcher
+Description=Wi-Fi station disconnect watcher
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=${AIRPLAY_MODE_EVENTS_SCRIPT}
+ExecStart=${WIFI_STATION_WATCH_SCRIPT}
 Restart=always
 RestartSec=5
 
@@ -559,9 +559,9 @@ configure_mode_detector_service() {
     # older installs left a throwaway "Hotspot" profile behind
     nmcli connection delete Hotspot >/dev/null 2>&1 || true
     systemctl daemon-reload
-    systemctl enable --now airplay-car-pi-mode.timer
-    systemctl enable --now airplay-car-pi-mode-events.service
-    systemctl start airplay-car-pi-mode.service
+    systemctl enable --now network-mode-check.timer
+    systemctl enable --now wifi-station-watch.service
+    systemctl start network-mode-check.service
   else
     log "systemd not available, skipping mode detector timer setup"
   fi
