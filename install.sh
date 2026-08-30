@@ -542,6 +542,8 @@ if [[ -f "${MODE_ENV_FILE}" ]]; then
 fi
 
 ap_iface="${CAR_AP_IFACE:-wlan0}"
+state_dir="/run/airplay-car-pi"
+probe_stamp_file="${state_dir}/last-home-probe"
 
 log_msg() {
   if command -v logger >/dev/null 2>&1; then
@@ -559,6 +561,7 @@ iw event | while read -r line; do
   case "${line}" in
     *"${ap_iface}"*"del station"*)
       log_msg "station left ${ap_iface}, triggering immediate mode check"
+      rm -f "${probe_stamp_file}"
       systemctl start network-mode-check.service || true
       ;;
   esac
