@@ -6,6 +6,7 @@ set -euo pipefail
 SERVICE_NAME="shairport-sync"
 CONFIG_FILE="/etc/shairport-sync.conf"
 HIFIBERRY_CARD_PATTERN='hifiberry|sndrpihifiberry|hifiberrydac'
+NETWORK_MODE_STATE_FILE="/run/airplay-car-pi/network-mode"
 
 pass() {
   printf "[PASS] %s\n" "$1"
@@ -158,7 +159,25 @@ get_current_ssid() {
 }
 
 check_wifi_mode() {
-  local expected_home_ssid current_ssid
+  local expected_home_ssid current_ssid mode
+
+  if [[ -r "${NETWORK_MODE_STATE_FILE}" ]]; then
+    mode="$(cat "${NETWORK_MODE_STATE_FILE}" 2>/dev/null || true)"
+    case "${mode}" in
+      CONFIGURED_SSID)
+        pass "Network mode: CONFIGURED_SSID"
+        return
+        ;;
+      AWAY)
+        warn "Network mode: AWAY (car hotspot should be active)"
+        return
+        ;;
+      *)
+        warn "Network mode state is invalid: '${mode:-empty}'"
+        return
+        ;;
+    esac
+  fi
 
   expected_home_ssid="${HOME_WIFI_SSID:-}"
 
