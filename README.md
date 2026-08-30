@@ -334,6 +334,23 @@ Rollback workflow:
 - Choose either `restore-snapshot` or `redeploy-tag`.
 - Provide `snapshot_id` for snapshot restore, or `version` for tag redeploy.
 
+## Read-Only Overlay Filesystem
+
+`install.sh` enables a read-only root overlay (`raspi-config nonint do_overlayfs 0`) so an abrupt power cut at ignition-off cannot corrupt the SD card. Runtime state lives in `/run/airplay-car-pi` (tmpfs), unaffected by this.
+
+Because the overlay only takes effect after a reboot, and root becomes read-only once active, install/update new config or scripts *before* rebooting into overlay mode. To make changes later once the overlay is already active:
+
+```bash
+# Disable overlay, reboot, make your changes (apt upgrade, new install.sh, etc.), then re-enable:
+make remote-writable-root PI_USER=<username> PI_HOST=<pi-hostname-or-ip>
+ssh <username>@<pi-hostname-or-ip> sudo reboot
+# ... deploy updates as usual (make deploy) ...
+make remote-readonly-root PI_USER=<username> PI_HOST=<pi-hostname-or-ip>
+ssh <username>@<pi-hostname-or-ip> sudo reboot
+```
+
+Alternatively, to persist a change without a full disable/enable cycle, run `sudo overlayroot-chroot` on the Pi: it chroots into the real writable root so changes apply on the next reboot without touching the overlay setting itself.
+
 ## Audio Notes
 
 - The installer attempts to set `dtparam=audio=off` and `dtoverlay=hifiberry-dac` in the Raspberry Pi boot config.

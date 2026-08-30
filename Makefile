@@ -12,7 +12,7 @@ WAIT_SSH_INTERVAL ?= 5
 RELEASE_VERSION ?=
 SNAPSHOT_ID ?=
 
-.PHONY: help check lint unit integration-airplay perf security changelog package release-prep tag-release backup-remote rollback-remote build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install wait-for-ssh remote-diagnose deploy clean
+.PHONY: help check lint unit integration-airplay perf security changelog package release-prep tag-release backup-remote rollback-remote remote-writable-root remote-readonly-root build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install wait-for-ssh remote-diagnose deploy clean
 
 help:
 	@echo "Available targets:"
@@ -37,6 +37,8 @@ help:
 	@echo "  make copy-scripts                - Copy install.sh and diagnose.sh to Raspberry Pi"
 	@echo "  make backup-remote               - Save remote rollback snapshot before promotion"
 	@echo "  make rollback-remote SNAPSHOT_ID=<id> - Restore a saved remote rollback snapshot"
+	@echo "  make remote-writable-root         - Disable read-only overlay so updates can be installed (needs reboot)"
+	@echo "  make remote-readonly-root         - Re-enable read-only overlay after updates (needs reboot)"
 	@echo "  make remote-install              - Run installer on Raspberry Pi over SSH"
 	@echo "  make wait-for-ssh                - Wait until SSH on Raspberry Pi is reachable"
 	@echo "  make remote-diagnose             - Run diagnostics on Raspberry Pi over SSH"
@@ -112,6 +114,12 @@ backup-remote:
 rollback-remote:
 	@test -n "$(SNAPSHOT_ID)" || (echo "Set SNAPSHOT_ID=<timestamp>" && exit 1)
 	bash scripts/deploy/rollback_backup.sh $(SNAPSHOT_ID)
+
+remote-writable-root:
+	bash scripts/deploy/set_overlay_mode.sh writable
+
+remote-readonly-root:
+	bash scripts/deploy/set_overlay_mode.sh readonly
 
 copy-scripts:
 	@for i in $$(seq 1 $(COPY_RETRIES)); do \
