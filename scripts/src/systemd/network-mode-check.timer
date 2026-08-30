@@ -1,0 +1,12 @@
+[Unit]
+Description=Run network mode detection periodically
+
+[Timer]
+OnBootSec=20s
+OnUnitActiveSec=30s
+Unit=network-mode-check.service
+AccuracySec=5s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

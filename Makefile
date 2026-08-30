@@ -11,8 +11,9 @@ WAIT_SSH_RETRIES ?= 36
 WAIT_SSH_INTERVAL ?= 5
 RELEASE_VERSION ?=
 SNAPSHOT_ID ?=
+INSTALL_BUNDLE ?= dist/install.sh
 
-.PHONY: help check lint unit integration-airplay perf security changelog package release-prep tag-release backup-remote rollback-remote remote-writable-root remote-readonly-root build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install wait-for-ssh remote-diagnose deploy clean
+.PHONY: help check lint unit integration-airplay perf security changelog bundle-install package release-prep tag-release backup-remote rollback-remote remote-writable-root remote-readonly-root build run rerun diagnose-container test verify-packages test-no-network shell copy-scripts remote-install wait-for-ssh remote-diagnose deploy clean
 
 help:
 	@echo "Available targets:"
@@ -23,6 +24,7 @@ help:
 	@echo "  make perf                        - Run regression/performance tests on target Pi"
 	@echo "  make security                    - Run security checks (shellcheck all, secrets, trivy, gitleaks)"
 	@echo "  make changelog VERSION=vX.Y.Z    - Generate dist changelog from git history"
+	@echo "  make bundle-install              - Build self-contained dist/install.sh for curl | bash installs"
 	@echo "  make package VERSION=vX.Y.Z      - Build release tar.gz/zip artifacts in dist/"
 	@echo "  make release-prep VERSION=vX.Y.Z - Generate changelog and packages together"
 	@echo "  make tag-release VERSION=vX.Y.Z  - Create annotated git tag locally"
@@ -71,6 +73,9 @@ changelog:
 	@test -n "$(RELEASE_VERSION)$(VERSION)" || (echo "Set VERSION=vX.Y.Z" && exit 1)
 	@echo "$(or $(VERSION),$(RELEASE_VERSION))" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$$' || (echo "VERSION must match vX.Y.Z" && exit 1)
 	bash scripts/release/generate_changelog.sh $(or $(VERSION),$(RELEASE_VERSION))
+
+bundle-install:
+	bash scripts/release/bundle_install.sh $(INSTALL_BUNDLE)
 
 package:
 	@test -n "$(RELEASE_VERSION)$(VERSION)" || (echo "Set VERSION=vX.Y.Z" && exit 1)

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+AIRPLAY_CONFIG_FILE="${AIRPLAY_CONFIG_FILE:-/etc/default/airplay-car-pi}"
+
+if [[ -f "${AIRPLAY_CONFIG_FILE}" ]]; then
+  # shellcheck disable=SC1090
+  source "${AIRPLAY_CONFIG_FILE}"
+fi
+
+iface="${1:-}"
+action="${2:-}"
+
+if [[ "${iface}" == "${CAR_AP_IFACE:-wlan0}" && "${action}" == "down" ]]; then
+  systemctl start network-mode-check.service || true
+fi

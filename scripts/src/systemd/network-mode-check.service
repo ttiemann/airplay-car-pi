@@ -1,0 +1,9 @@
+[Unit]
+Description=Network mode detection
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+TimeoutStartSec=120
+ExecStart=/usr/local/bin/network-mode-check

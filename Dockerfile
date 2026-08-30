@@ -18,6 +18,7 @@ WORKDIR /app
 # Add the installation and diagnostic scripts.
 COPY install.sh /app/install.sh
 COPY diagnose.sh /app/diagnose.sh
+COPY scripts/src /app/scripts/src
 RUN chmod +x /app/install.sh /app/diagnose.sh
 
 # Run the installer when the container starts.

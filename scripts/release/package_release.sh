@@ -39,11 +39,18 @@ while IFS= read -r -d '' file_path; do
   cp -p "${REPO_ROOT}/${file_path}" "${RELEASE_DIR}/${file_path}"
 done < <(git -C "${REPO_ROOT}" ls-files -z)
 
+bash "${REPO_ROOT}/scripts/release/bundle_install.sh" "${RELEASE_DIR}/install.sh"
+
 TAR_PATH="${DIST_DIR}/${PROJECT_NAME}-${VERSION}.tar.gz"
 ZIP_PATH="${DIST_DIR}/${PROJECT_NAME}-${VERSION}.zip"
+INSTALLER_PATH="${DIST_DIR}/${PROJECT_NAME}-${VERSION}-install.sh"
+STABLE_INSTALLER_PATH="${DIST_DIR}/${PROJECT_NAME}-install.sh"
 CHECKSUM_PATH="${DIST_DIR}/${PROJECT_NAME}-${VERSION}.sha256"
 
-rm -f "${TAR_PATH}" "${ZIP_PATH}" "${CHECKSUM_PATH}"
+rm -f "${TAR_PATH}" "${ZIP_PATH}" "${INSTALLER_PATH}" "${STABLE_INSTALLER_PATH}" "${CHECKSUM_PATH}"
+
+bash "${REPO_ROOT}/scripts/release/bundle_install.sh" "${INSTALLER_PATH}"
+cp -p "${INSTALLER_PATH}" "${STABLE_INSTALLER_PATH}"
 
 tar -C "${STAGE_DIR}" -czf "${TAR_PATH}" "${PROJECT_NAME}-${VERSION}"
 
@@ -57,6 +64,8 @@ else
 fi
 
 {
+  shasum -a 256 "${INSTALLER_PATH}"
+  shasum -a 256 "${STABLE_INSTALLER_PATH}"
   shasum -a 256 "${TAR_PATH}"
   if [[ -f "${ZIP_PATH}" ]]; then
     shasum -a 256 "${ZIP_PATH}"
@@ -64,6 +73,8 @@ fi
 } > "${CHECKSUM_PATH}"
 
 echo "Created release artifacts:"
+echo "  ${INSTALLER_PATH}"
+echo "  ${STABLE_INSTALLER_PATH}"
 echo "  ${TAR_PATH}"
 if [[ -f "${ZIP_PATH}" ]]; then
   echo "  ${ZIP_PATH}"

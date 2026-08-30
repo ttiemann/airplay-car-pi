@@ -14,6 +14,7 @@ architecture for the hardware.
 - Configures Raspberry Pi boot settings for HiFiBerry DAC+ Zero when boot config is available
 - Applies quiet kernel boot options and HDMI blanking for quicker time-to-music
 - Generates `/etc/shairport-sync.conf` with configurable defaults
+- Writes installer and mode-detector defaults to `/etc/default/airplay-car-pi`
 - Enables and restarts `shairport-sync` automatically on systemd systems
 - Includes `diagnose.sh` for post-install service/audio/network checks
 - Boot-time optimizations for faster in-car availability
@@ -51,10 +52,10 @@ architecture for the hardware.
     - Wi-Fi SSID/password (if applicable)
     - SSH (required)
 3. Boot the Pi and confirm network access.
-4. Get only the installer script:
+4. Get the single-file release installer script:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<your-user>/airplay-car-pi/main/install.sh -o install.sh
+curl -fsSL https://github.com/<your-user>/airplay-car-pi/releases/latest/download/airplay-car-pi-install.sh -o install.sh
 ```
 
 Alternative (from your local machine):
@@ -106,6 +107,7 @@ Current bootstrap actions:
 - Configures Raspberry Pi boot audio settings for HiFiBerry DAC+ Zero
 - Adds `quiet fastboot loglevel=3 logo.nologo console=tty3 vt.global_cursor_default=0` to the Raspberry Pi kernel command line and sets `hdmi_blanking=2`
 - Generates `/etc/shairport-sync.conf` (with timestamped backup if it exists)
+- Writes `/etc/default/airplay-car-pi` for persistent AirPlay, hotspot, and mode-detector defaults
 - Enables and restarts `shairport-sync` when systemd is available
 - Installs a home-vs-car mode detector timer, a NetworkManager home Wi-Fi disconnect hook, and a Wi-Fi client disconnect watcher
 
@@ -127,6 +129,12 @@ Example install:
 
 ```bash
 sudo AIRPLAY_DEVICE_NAME="Car AirPlay" CAR_AP_SSID="MyCar" CAR_AP_PASSWORD="mysecurepassword" ./install.sh
+```
+
+Those values are persisted in `/etc/default/airplay-car-pi`. Edit that file to change the mode detector defaults after installation, then restart the affected services:
+
+```bash
+sudo systemctl restart network-mode-check.timer wifi-station-watch.service
 ```
 
 ## Access Point in Car Mode
@@ -217,6 +225,13 @@ Use the Makefile for repeatable checks and tests:
 ```bash
 make help
 make test
+```
+
+`install.sh` installs helper scripts and systemd units from `scripts/src` when run from a git checkout. Release packaging runs `scripts/release/bundle_install.sh` to generate a self-contained installer for `curl | bash` usage:
+
+```bash
+make bundle-install
+make package VERSION=v0.1.0
 ```
 
 Useful targets:
