@@ -105,7 +105,7 @@ Current bootstrap actions:
 - Configures Raspberry Pi boot audio settings for HiFiBerry DAC+ Zero
 - Generates `/etc/shairport-sync.conf` (with timestamped backup if it exists)
 - Enables and restarts `shairport-sync` when systemd is available
-- Installs a periodic home-vs-car mode detector timer
+- Installs a periodic home-vs-car mode detector timer and a Wi‑Fi disconnect watcher
 
 Supported environment variables:
 
@@ -118,7 +118,7 @@ Supported environment variables:
 - `CAR_AP_CHANNEL` (default: `6`)
 - `CAR_AP_HOME_PROBE_SEC` (default: `180`; how often car mode drops the hotspot to look for home Wi-Fi)
 
-The installer also sets up a systemd timer on the Pi that checks Wi-Fi mode automatically every 30 seconds. It auto-detects your configured SSID from Raspberry Pi network configuration (including Raspberry Pi Imager setup). Set `AIRPLAY_DEVICE_NAME` to choose the receiver name shown in the AirPlay output selector.
+The installer also sets up a generic network-mode systemd timer on the Pi that checks Wi‑Fi mode automatically every 30 seconds. It also installs a `wifi-station-watch` service that listens for Wi‑Fi client disconnect events and triggers an immediate mode check when the hotspot becomes idle. It auto-detects your configured SSID from Raspberry Pi network configuration (including Raspberry Pi Imager setup). Set `AIRPLAY_DEVICE_NAME` to choose the receiver name shown in the AirPlay output selector.
 
 Example install:
 
@@ -137,9 +137,9 @@ Activation is retried on every tick until it succeeds, and any `nmcli` failure i
 
 ### Returning To Home Wi-Fi
 
-A radio in access point mode cannot scan for other networks, so the Pi cannot passively notice that home Wi-Fi is back. Instead, every `CAR_AP_HOME_PROBE_SEC` (default 180 s) it briefly drops the hotspot, tries to activate the home profile, and restores the hotspot if that fails.
+A radio in access point mode cannot scan for other networks, so the Pi cannot passively notice that home Wi‑Fi is back. Instead, every `CAR_AP_HOME_PROBE_SEC` (default 180 s) it briefly drops the hotspot, tries to activate the home profile, and restores the hotspot if that fails.
 
-The probe is **skipped entirely while a client is associated** with the hotspot, so an active AirPlay stream in the car is never interrupted. Probing resumes once the last client leaves — typically when you arrive home and your phone rejoins the house network. The switch back takes a few seconds.
+The probe is **skipped entirely while the Pi is already on the configured home SSID** and also while a client is associated with the hotspot, so an active AirPlay stream in the car is never interrupted. Probing resumes only when the Pi is actually in hotspot/car mode and the last client leaves — typically when you arrive home and your phone rejoins the house network. The switch back takes a few seconds.
 
 Connect to the hotspot from your iPhone/Mac:
 
@@ -161,12 +161,14 @@ On iPhone, iPad, or macOS:
 
 ## Service Management
 
-Use these commands to manage and inspect the service:
+Use these commands to manage and inspect the services:
 
 ```bash
 sudo systemctl status shairport-sync --no-pager
 sudo systemctl restart shairport-sync
 sudo journalctl -u shairport-sync -f
+sudo systemctl status network-mode-check.timer wifi-station-watch.service --no-pager
+sudo journalctl -u network-mode-check.service -u wifi-station-watch.service -f
 ```
 
 To classify current network mode in diagnostics:
