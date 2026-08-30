@@ -24,6 +24,11 @@ CAR_AP_IFACE="${CAR_AP_IFACE:-wlan0}"
 CAR_AP_CHANNEL="${CAR_AP_CHANNEL:-6}"
 CAR_AP_HOME_PROBE_SEC="${CAR_AP_HOME_PROBE_SEC:-180}"
 
+# Power is cut abruptly at ignition-off in a vehicle; a read-only overlay
+# root protects the SD card from corruption. Set to "0" to skip (e.g. for
+# development installs where the filesystem must stay writable).
+OVERLAYFS_ENABLE="${OVERLAYFS_ENABLE:-1}"
+
 NETWORK_MODE_ENV_FILE="/etc/default/network-mode-check"
 NETWORK_MODE_CHECK_SCRIPT="/usr/local/bin/network-mode-check"
 NETWORK_MODE_SERVICE_FILE="/etc/systemd/system/network-mode-check.service"
@@ -165,6 +170,35 @@ configure_hifiberry_dac() {
 
 has_running_systemd() {
   command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]
+}
+
+enable_read_only_overlay() {
+  if [[ "${OVERLAYFS_ENABLE}" != "1" ]]; then
+    log "OVERLAYFS_ENABLE=${OVERLAYFS_ENABLE}, skipping read-only overlay filesystem setup"
+    return
+  fi
+
+  if ! command -v raspi-config >/dev/null 2>&1; then
+    log "raspi-config not found, skipping read-only overlay filesystem setup"
+    return
+  fi
+
+  # get_overlay_conf prints "0" (success exit code) when boot=overlay is
+  # already present on the kernel command line.
+  if [[ "$(raspi-config nonint get_overlay_conf 2>/dev/null)" == "0" ]]; then
+    log "Read-only overlay filesystem already enabled"
+    return
+  fi
+
+  log "Enabling read-only overlay filesystem (root becomes read-only, dynamic state stays in tmpfs)"
+  # do_overlayfs also marks /boot read-only using the same flag; runtime
+  # state under /run is tmpfs already and unaffected by either change.
+  if raspi-config nonint do_overlayfs 0; then
+    log "Overlay filesystem enabled; a reboot is required for it to take effect."
+    log "Note: root becomes read-only after reboot -- make persistent config changes before rebooting, or disable the overlay first (raspi-config nonint do_overlayfs 1)."
+  else
+    log "Failed to enable overlay filesystem"
+  fi
 }
 
 configure_shairport_service() {
@@ -612,6 +646,7 @@ main() {
   configure_shairport_service
   install_mode_detector_files
   configure_mode_detector_service
+  enable_read_only_overlay
 
   log "Bootstrap complete"
 }
