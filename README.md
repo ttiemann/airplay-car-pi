@@ -68,7 +68,7 @@ Optional: also copy the diagnostic script:
 scp ./diagnose.sh <username>@<pi-hostname-or-ip>:~/diagnose.sh
 ```
 
-Optional: the diagnostic script can auto-detect your configured SSID (the one set in Raspberry Pi Imager) to classify client vs away/car mode.
+The diagnostic script reports the installed mode detector's state when available. Without the detector state file, it falls back to auto-detecting the configured SSID.
 
 5. Run the installer:
 
@@ -105,7 +105,7 @@ Current bootstrap actions:
 - Configures Raspberry Pi boot audio settings for HiFiBerry DAC+ Zero
 - Generates `/etc/shairport-sync.conf` (with timestamped backup if it exists)
 - Enables and restarts `shairport-sync` when systemd is available
-- Installs a periodic home-vs-car mode detector timer and a Wi‑Fi disconnect watcher
+- Installs a home-vs-car mode detector timer, a NetworkManager home Wi-Fi disconnect hook, and a Wi-Fi client disconnect watcher
 
 Supported environment variables:
 
@@ -118,7 +118,7 @@ Supported environment variables:
 - `CAR_AP_CHANNEL` (default: `6`)
 - `CAR_AP_HOME_PROBE_SEC` (default: `180`; how often car mode drops the hotspot to look for home Wi-Fi)
 
-The installer also sets up a generic network-mode systemd timer on the Pi that checks Wi‑Fi mode automatically every 30 seconds. It also installs a `wifi-station-watch` service that listens for Wi‑Fi client disconnect events and triggers an immediate mode check when the hotspot becomes idle. It auto-detects your configured SSID from Raspberry Pi network configuration (including Raspberry Pi Imager setup). Set `AIRPLAY_DEVICE_NAME` to choose the receiver name shown in the AirPlay output selector.
+The installer also sets up a generic network-mode systemd timer on the Pi that checks Wi-Fi mode automatically every 30 seconds. A NetworkManager dispatcher hook triggers an immediate check when the configured Wi-Fi interface disconnects from home, while the `wifi-station-watch` service triggers a check when a hotspot client disconnects. It auto-detects your configured SSID from Raspberry Pi network configuration (including Raspberry Pi Imager setup). Set `AIRPLAY_DEVICE_NAME` to choose the receiver name shown in the AirPlay output selector.
 
 Example install:
 
@@ -128,7 +128,7 @@ sudo AIRPLAY_DEVICE_NAME="Car AirPlay" CAR_AP_SSID="MyCar" CAR_AP_PASSWORD="myse
 
 ## Access Point in Car Mode
 
-When the Pi is away from home Wi-Fi, a mode-check timer (every 30 s) automatically:
+When the Pi loses home Wi-Fi, the NetworkManager dispatcher immediately runs a mode check. The 30-second mode-check timer remains as a recovery backstop and automatically:
 
 1. Releases `wlan0` from the home profile and activates a dedicated `airplay-car-hotspot` NetworkManager profile (WPA2 access point, `ipv4.method shared`)
 2. NetworkManager handles `hostapd` and DHCP internally via `dnsmasq-base` — no manual service setup needed
