@@ -89,19 +89,26 @@ test_generate_shairport_config_uses_selected_values() {
 }
 
 test_mode_detector_keeps_airplay_name_fixed() {
-  local tmp_dir detector_file
+  local tmp_dir detector_file dispatcher_file
   tmp_dir="$(mktemp -d)"
   detector_file="${tmp_dir}/airplay-car-pi-mode-check"
+  dispatcher_file="${tmp_dir}/90-network-mode-check"
 
-  AIRPLAY_MODE_ENV_FILE="${tmp_dir}/airplay-car-pi-mode" \
-    AIRPLAY_MODE_CHECK_SCRIPT="$detector_file" \
-    AIRPLAY_MODE_SERVICE_FILE="${tmp_dir}/airplay-car-pi-mode.service" \
-    AIRPLAY_MODE_TIMER_FILE="${tmp_dir}/airplay-car-pi-mode.timer" \
+  NETWORK_MODE_ENV_FILE="${tmp_dir}/network-mode-check" \
+    NETWORK_MODE_CHECK_SCRIPT="$detector_file" \
+    NETWORK_MODE_SERVICE_FILE="${tmp_dir}/network-mode-check.service" \
+    NETWORK_MODE_TIMER_FILE="${tmp_dir}/network-mode-check.timer" \
+    NETWORK_MANAGER_DISPATCHER_FILE="$dispatcher_file" \
+    WIFI_STATION_WATCH_SCRIPT="${tmp_dir}/wifi-station-watch" \
+    WIFI_STATION_WATCH_SERVICE_FILE="${tmp_dir}/wifi-station-watch.service" \
     install_mode_detector_files >/dev/null
 
   assert_not_contains "$detector_file" 'AIRPLAY_CAR_SUFFIX'
   assert_not_contains "$detector_file" 'shairport-sync.conf'
   assert_not_contains "$detector_file" 'systemctl restart shairport-sync'
+  assert_contains "$dispatcher_file" 'source "${MODE_ENV_FILE}"'
+  assert_contains "$dispatcher_file" '"${action}" == "down"'
+  assert_contains "$dispatcher_file" 'systemctl start network-mode-check.service || true'
 }
 
 test_generate_shairport_config_uses_software_mixer_when_no_control_available() {

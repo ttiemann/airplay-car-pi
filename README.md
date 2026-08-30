@@ -177,8 +177,8 @@ To classify current network mode in diagnostics:
 ./diagnose.sh
 ```
 
-- `CONFIGURED_SSID`: connected to your configured SSID — client mode, no hotspot
-- `AWAY`: configured SSID not found — hotspot active
+- `CONFIGURED_SSID`: the mode detector confirmed client mode on the configured SSID; no hotspot
+- `AWAY`: the mode detector could not use the configured SSID; hotspot active or being retried
 
 The mode detector logs every decision under the `airplay-car-pi-mode` syslog tag:
 

@@ -28,6 +28,7 @@ NETWORK_MODE_ENV_FILE="/etc/default/network-mode-check"
 NETWORK_MODE_CHECK_SCRIPT="/usr/local/bin/network-mode-check"
 NETWORK_MODE_SERVICE_FILE="/etc/systemd/system/network-mode-check.service"
 NETWORK_MODE_TIMER_FILE="/etc/systemd/system/network-mode-check.timer"
+NETWORK_MANAGER_DISPATCHER_FILE="/etc/NetworkManager/dispatcher.d/90-network-mode-check"
 WIFI_STATION_WATCH_SCRIPT="/usr/local/bin/wifi-station-watch"
 WIFI_STATION_WATCH_SERVICE_FILE="/etc/systemd/system/wifi-station-watch.service"
 
@@ -504,6 +505,27 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 EOF
+
+  cat >"${NETWORK_MANAGER_DISPATCHER_FILE}" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+MODE_ENV_FILE="/etc/default/network-mode-check"
+
+if [[ -f "${MODE_ENV_FILE}" ]]; then
+  # shellcheck disable=SC1090
+  source "${MODE_ENV_FILE}"
+fi
+
+iface="${1:-}"
+action="${2:-}"
+
+if [[ "${iface}" == "${CAR_AP_IFACE:-wlan0}" && "${action}" == "down" ]]; then
+  systemctl start network-mode-check.service || true
+fi
+EOF
+
+  chmod +x "${NETWORK_MANAGER_DISPATCHER_FILE}"
 
   cat >"${WIFI_STATION_WATCH_SCRIPT}" <<'EOF'
 #!/usr/bin/env bash
