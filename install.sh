@@ -37,7 +37,7 @@ SKIP_SYSTEMD_SETUP="${SKIP_SYSTEMD_SETUP:-0}"
 AIRPLAY_CONFIG_FILE="${AIRPLAY_CONFIG_FILE:-/etc/default/airplay-car-pi}"
 NETWORK_MODE_CHECK_SCRIPT="/usr/local/bin/network-mode-check"
 NETWORK_MODE_SERVICE_FILE="/etc/systemd/system/network-mode-check.service"
-NETWORK_MODE_TIMER_FILE="/etc/systemd/system/network-mode-check.timer"
+NETWORK_MODE_POLL_SERVICE_FILE="/etc/systemd/system/network-mode-poll.service"
 NETWORK_MANAGER_DISPATCHER_FILE="/etc/NetworkManager/dispatcher.d/90-network-mode-check"
 WIFI_STATION_WATCH_SCRIPT="/usr/local/bin/wifi-station-watch"
 WIFI_STATION_WATCH_SERVICE_FILE="/etc/systemd/system/wifi-station-watch.service"
@@ -332,7 +332,7 @@ install_mode_detector_files() {
   write_airplay_config
   install_asset_file "bin/network-mode-check.sh" "${NETWORK_MODE_CHECK_SCRIPT}" 755
   install_asset_file "systemd/network-mode-check.service" "${NETWORK_MODE_SERVICE_FILE}" 644
-  install_asset_file "systemd/network-mode-check.timer" "${NETWORK_MODE_TIMER_FILE}" 644
+  install_asset_file "systemd/network-mode-poll.service" "${NETWORK_MODE_POLL_SERVICE_FILE}" 644
   install_asset_file "NetworkManager/dispatcher.d/90-network-mode-check" "${NETWORK_MANAGER_DISPATCHER_FILE}" 755
   install_asset_file "bin/wifi-station-watch.sh" "${WIFI_STATION_WATCH_SCRIPT}" 755
   install_asset_file "systemd/wifi-station-watch.service" "${WIFI_STATION_WATCH_SERVICE_FILE}" 644
@@ -340,11 +340,14 @@ install_mode_detector_files() {
 
 configure_mode_detector_service() {
   if has_running_systemd; then
-    log "Enabling airplay-car-pi mode detector timer"
+    log "Enabling airplay-car-pi mode detector"
     # older installs left a throwaway "Hotspot" profile behind
     nmcli connection delete Hotspot >/dev/null 2>&1 || true
+    # older installs used a network-mode-check.timer, which can get stuck at
+    # "n/a" and never fire again after a clock jump (no RTC on this hardware)
+    systemctl disable --now network-mode-check.timer >/dev/null 2>&1 || true
     systemctl daemon-reload
-    systemctl enable --now network-mode-check.timer
+    systemctl enable --now network-mode-poll.service
     systemctl enable --now wifi-station-watch.service
     systemctl start network-mode-check.service
   else

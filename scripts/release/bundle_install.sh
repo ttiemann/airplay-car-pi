@@ -12,7 +12,7 @@ ASSETS=(
   "bin/wifi-station-watch.sh"
   "NetworkManager/dispatcher.d/90-network-mode-check"
   "systemd/network-mode-check.service"
-  "systemd/network-mode-check.timer"
+  "systemd/network-mode-poll.service"
   "systemd/wifi-station-watch.service"
 )
 

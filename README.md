@@ -123,7 +123,7 @@ Supported environment variables:
 - `CAR_AP_HOME_PROBE_SEC` (default: `180`; how often car mode drops the hotspot to look for home Wi-Fi)
 - `DISABLE_BLUETOOTH` (default: `0`; set to `1` to add `dtoverlay=disable-bt` when Bluetooth is unused)
 
-The installer also sets up a generic network-mode systemd timer on the Pi that checks Wi-Fi mode automatically every 30 seconds. A NetworkManager dispatcher hook triggers an immediate check when the configured Wi-Fi interface disconnects from home, while the `wifi-station-watch` service triggers a check when a hotspot client disconnects. It auto-detects your configured SSID from Raspberry Pi network configuration (including Raspberry Pi Imager setup). Set `AIRPLAY_DEVICE_NAME` to choose the receiver name shown in the AirPlay output selector.
+The installer also sets up a `network-mode-poll` service on the Pi that checks Wi-Fi mode automatically every 30 seconds (a sleep loop, not a systemd timer, since this hardware has no RTC and a `.timer` unit can get permanently stuck after the clock jumps forward once NTP finally syncs). A NetworkManager dispatcher hook triggers an immediate check when the configured Wi-Fi interface disconnects from home, while the `wifi-station-watch` service triggers a check when a hotspot client disconnects. It auto-detects your configured SSID from Raspberry Pi network configuration (including Raspberry Pi Imager setup). Set `AIRPLAY_DEVICE_NAME` to choose the receiver name shown in the AirPlay output selector.
 
 Example install:
 
@@ -134,12 +134,12 @@ sudo AIRPLAY_DEVICE_NAME="Car AirPlay" CAR_AP_SSID="MyCar" CAR_AP_PASSWORD="myse
 Those values are persisted in `/etc/default/airplay-car-pi`. Edit that file to change the mode detector defaults after installation, then restart the affected services:
 
 ```bash
-sudo systemctl restart network-mode-check.timer wifi-station-watch.service
+sudo systemctl restart network-mode-poll.service wifi-station-watch.service
 ```
 
 ## Access Point in Car Mode
 
-When the Pi loses home Wi-Fi, the NetworkManager dispatcher immediately runs a mode check. The 30-second mode-check timer remains as a recovery backstop and automatically:
+When the Pi loses home Wi-Fi, the NetworkManager dispatcher immediately runs a mode check. The 30-second `network-mode-poll` service remains as a recovery backstop and automatically:
 
 1. Releases `wlan0` from the home profile and activates a dedicated `airplay-car-hotspot` NetworkManager profile (WPA2 access point, `ipv4.method shared`)
 2. NetworkManager handles `hostapd` and DHCP internally via `dnsmasq-base` — no manual service setup needed
@@ -178,8 +178,8 @@ Use these commands to manage and inspect the services:
 sudo systemctl status shairport-sync --no-pager
 sudo systemctl restart shairport-sync
 sudo journalctl -u shairport-sync -f
-sudo systemctl status network-mode-check.timer wifi-station-watch.service --no-pager
-sudo journalctl -u network-mode-check.service -u wifi-station-watch.service -f
+sudo systemctl status network-mode-poll.service wifi-station-watch.service --no-pager
+sudo journalctl -u network-mode-check.service -u network-mode-poll.service -u wifi-station-watch.service -f
 ```
 
 To classify current network mode in diagnostics:

@@ -99,7 +99,7 @@ test_mode_detector_keeps_airplay_name_fixed() {
     AIRPLAY_CONFIG_FILE="${tmp_dir}/airplay-car-pi.conf" \
     NETWORK_MODE_CHECK_SCRIPT="$detector_file" \
     NETWORK_MODE_SERVICE_FILE="${tmp_dir}/network-mode-check.service" \
-    NETWORK_MODE_TIMER_FILE="${tmp_dir}/network-mode-check.timer" \
+    NETWORK_MODE_POLL_SERVICE_FILE="${tmp_dir}/network-mode-poll.service" \
     NETWORK_MANAGER_DISPATCHER_FILE="$dispatcher_file" \
     WIFI_STATION_WATCH_SCRIPT="$watcher_file" \
     WIFI_STATION_WATCH_SERVICE_FILE="${tmp_dir}/wifi-station-watch.service" \
