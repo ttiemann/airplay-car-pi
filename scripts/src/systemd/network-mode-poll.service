@@ -7,12 +7,12 @@ Wants=network-online.target
 # systemd .timer units (OnBootSec/OnUnitActiveSec) can get stuck at "n/a" and
 # never fire again after a large CLOCK_REALTIME jump. This Pi has no RTC, so
 # it boots with a stale clock and jumps forward once NTP finally syncs -
-# reliably wedging a timer unit. A sleep-loop only relies on the monotonic
-# clock, so it survives that jump.
-Type=simple
-ExecStart=/bin/bash -c 'sleep 20; while true; do systemctl start network-mode-check.service; sleep 30; done'
+# reliably wedging a timer unit. Restart=/RestartSec= reschedule off the
+# monotonic clock instead, so this survives that jump. (Restart= isn't
+# allowed with Type=oneshot, so this uses the Type=simple default.)
+ExecStart=/usr/bin/systemctl start network-mode-check.service
 Restart=always
-RestartSec=5
+RestartSec=30
 
 [Install]
 WantedBy=multi-user.target
